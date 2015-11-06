@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src='inline-layout.js'></script>
+
+<style>
+#text {
+  width: 400px;
+  background: #EEE;
+}
+
+</style>
+
+<div id='text'>
+Lorem ipsum dolor sit amet, <my-b>consectetur adipisicing elit, sed do eiusmod</my-b> tempor
+incididunt ut labore et dolore magna aliqua. Ut enim <my-b>ad minim veniam, quis nostrud exercitation ullamco
+laboris nisi</my-b> ut aliquip ex ea <x-ruby>commodo<x-rb>aglagl</x-rb></x-ruby> consequat. Du<my-b>is</my-b> aute irure dolor
+in <my-b>reprehenderit</my-b> in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+Exc<my-b>ept</my-b>eur
+<x-ruby>sint<x-rb>電車</x-rb></x-ruby> occaecat cupi<my-b>datat</my-b> non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+</div>
+
+<script>
+'use strict';
+
+registerInlineLayout('my-b',
+  class {
+    layout(context, data) {
+      //context = context.commit();
+      //context.adjustPosition({x: 0, y: 10});
+      //context.adjustSize({width: 0, height: 10});
+      data = data[0];
+      data.style.fontWeight = "bold";
+      data.style.fontStyle = "italic";
+      while (true) {
+        data = context.consumeLine(data);
+        if (data == null)
+          break;
+        context = context.commit();
+      }
+      //context.adjustSize({width: 0, height: 10});
+      return context;//.commit();
+    }
+  },
+  { });
+
+[].forEach.call(document.querySelectorAll('my-b'), function(element) {
+  element.setInlineLayout('my-b');
+});
+
+registerInlineLayout('ruby',
+  class {
+    layout(context, data) {
+      var base = data[0];
+      var text = {data: data[1].node.firstChild.nodeValue, style: {}};
+      var data = context.consumeLine(base);
+      if (data !== null) {
+        context = context.commit();
+        context.consumeLine(base);
+      }
+      context.adjustSize({width: 0, height: 8});
+      context.adjustPosition({x: 0, y: 8});
+      var fragment = context.placedWordFragments[context.placedWordFragments.length - 1];
+      text.style.fontSize = "30%";
+      var textContext = new LineLayoutContext(
+        {width: fragment.bounds.width, height: fragment.bounds.height * 0.3,
+        left: fragment.bounds.left, top: fragment.bounds.top - fragment.bounds.height * 0.5});
+      textContext.consumeLine(text, true);
+      textContext.commit();
+      //console.log(base, text);
+      return context;
+    }
+  },
+  { });
+
+[].forEach.call(document.querySelectorAll('x-ruby'), function(element) {
+  element.setInlineLayout('ruby');
+});
+
+layoutHappened();
+</script>
