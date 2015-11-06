@@ -105,6 +105,7 @@ class LineLayoutContext {
     this.nextLineBoxPosition = {x: 0, y: 0};
     this.placedWordFragments = [];
     this.placedLineFragments = [];
+    this.break = true;
   }
 
   adjustPosition(position) {
@@ -129,9 +130,8 @@ class LineLayoutContext {
     break_after |= (/\s$/.exec(indata.data) !== null);
     var break_before = (/^\s/.exec(indata.data) !== null) || this.placedWordFragments.length == 0;
     var text = indata.data.trim();
-    var pos = this.nextLineBoxPosition;
-    var globalLeft = this.lineBounds.left + pos.x;
-    var globalTop = this.lineBounds.top + pos.y;
+
+    // adjust context font so we're measuring the right thing.
     var div = document.createElement('div');
     currentBlock.appendChild(div);
     for (var key in indata.style) {
@@ -140,11 +140,22 @@ class LineLayoutContext {
     var font = getComputedStyle(div).font;
     ctx.font = font;
     div.remove();
+
+    // insert a space if we haven't at the end of the previous run.
+    if (break_before && !this.break) {
+      this.nextLineBoxPosition.x += ctx.measureText(' ').width;
+    }
+
+    var pos = this.nextLineBoxPosition;
+    var globalLeft = this.lineBounds.left + pos.x;
+    var globalTop = this.lineBounds.top + pos.y;
+
     var data = nextLine(text, pos, this.lineBounds.width,
-      this.placedLineFragments.length == 0);
+      this.placedLineFragments.length == 0, !break_after);
 
     // TODO: proper references
     var wordBox = null;
+    // TODO: move word/line splitting into nextLine, based on break_after
     if (data.words.length > 0) {
       var text = text.substring(0, text.length - (data.remainder ? data.remainder.length : 0));
       if (/\s/.exec(text[text.length - 1]) == null && !((data.remainder == null) && break_after)) {
@@ -154,27 +165,21 @@ class LineLayoutContext {
         } else {
           pos = text.length - match[0].length;
         }
-        var word = text.substring(pos);
+        var word = text.substring(pos).trim();
         text = text.substring(0, pos);
         wordBox = new LineBox({left: globalLeft + ctx.measureText(text).width,
                                    top: globalTop, width: ctx.measureText(word).width,
                                    height: data.bounds.height},
             word);
-        if (!break_before) {
-          wordBox.bounds.left -= ctx.measureText(' ').width;
-        }
         wordBox.style = indata.style;
       }
       if (text.trim() !== "") {
         if (wordBox)
           wordBox.bounds.left += ctx.measureText(' ').width;
-        var linebox = new LineBox({left: globalLeft,// + data.bounds.left,
-                                top: globalTop,// + data.bounds.top,
+        var linebox = new LineBox({left: globalLeft,
+                                top: globalTop,
                                 width: data.bounds.width, height: data.bounds.height},
             text);
-        if (!break_before && !wordBox) {
-          linebox.bounds.left -= ctx.measureText(' ').width;
-        }
         linebox.style = indata.style;
         this.placedLineFragments = this.placedLineFragments.concat(this.placedWordFragments);
         this.placedWordFragments = [];
@@ -184,11 +189,18 @@ class LineLayoutContext {
         this.placedWordFragments.push(wordBox);
       }
     }
-    console.log("in: ", indata.data, break_before, break_after);
-    console.log("out: ", JSON.stringify(this.placedLineFragments), JSON.stringify(this.placedWordFragments));
+    // console.log("in: ", indata.data, break_before, break_after);
+    // console.log("out: ", JSON.stringify(this.placedLineFragments), JSON.stringify(this.placedWordFragments));
     this.nextLineBoxPosition = {x: data.bounds.left + data.bounds.width, y: data.bounds.top}
-    if (!break_before)
-      this.nextLineBoxPosition.x -= ctx.measureText(' ').width;
+
+    // record break status so we don't double-up on breaks.
+    if (data.remainder == null && !break_after) {
+      this.break = false;
+    } else {
+      this.break = true;
+    }
+
+    // preserve break-after if there's remaining data.
     if (data.remainder) {
       if (break_after && (/\s$/.exec(data.remainder) == null)) {
         data.remainder += ' ';
@@ -212,33 +224,37 @@ class LineLayoutContext {
       }
       var lastFragment = this.placedWordFragments[this.placedWordFragments.length - 1];
       newContext.nextLineBoxPosition.x += lastFragment.bounds.left + lastFragment.bounds.width;
-      console.log(newContext.nextLineBoxPosition);
     }
     return newContext;
   }
 }
 
-function nextLine(text, pos, width, force) {
-  var words = text.split(/\s+/);
+function nextLine(text, pos, width, force, nobreak) {
+  var words = text.split(/\s+/).filter(function(word) { return word.trim() !== ""; });
   var wordData = [];
   var spaceSize = ctx.measureText(' ').width;
   for (var i = 0; i < words.length; i++) {
     var word = words[i];
-    if (word.trim() == "") continue;
     var wordWidth = ctx.measureText(word).width;
-    var newpos  = pos.x + wordWidth;
+    var newpos = pos.x + wordWidth;
     if (newpos > width && !force) {
       var lastPosX = pos.x;
       var lastPosY = pos.y;
       pos.x = 0;
       pos.y += 18; // how to get this?
-      return {bounds: {left: 0, top: lastPosY, width: lastPosX + spaceSize, height: 18},
+      var width = lastPosX;
+      if (i < words.length - 1 || !nobreak)
+        width += spaceSize;
+      return {bounds: {left: 0, top: lastPosY, width: width, height: 18},
               pos: pos, words: wordData, remainder: words.slice(i).join(' ')};
     } else {
       force = false;
     }
     var wordItem = {left: pos.x, top: pos.y, word: word};
-    pos.x += spaceSize + wordWidth;
+    pos.x += wordWidth;
+    if (i < words.length - 1 || !nobreak)
+      pos.x += spaceSize;
+
     wordData.push(wordItem);
   }
   return {
