@@ -76,11 +76,13 @@ function layoutBlock(block) {
 
   for (var i = 0; i < pendingFragments.length; i++) {
     var fragment = pendingFragments[i];
+    var bounds = l2g(fragment);
+    // console.log(bounds, fragment.range, fragment.bounds)
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(fragment.range));
     div.style.position = 'absolute';
-    div.style.left = (fragment.bounds.left + x_offset) + 'px';
-    div.style.top = fragment.bounds.top + 'px';
+    div.style.left = (bounds.left + x_offset) + 'px';
+    div.style.top = bounds.top + 'px';
     for (var key in fragment.style) {
       div.style[key] = fragment.style[key];
     }
@@ -91,17 +93,40 @@ function layoutBlock(block) {
   pendingFragments = [];
 }
 
+function l2g(obj) {
+  if (!obj.parent)
+    return obj.bounds;
+  var parentBounds = l2g(obj.parent);
+  return {left: obj.bounds.left + parentBounds.left,
+          top: obj.bounds.top + parentBounds.top,
+          width: obj.bounds.width, height: obj.bounds.height};
+}
+
 class LineBox {
-  constructor(bounds, range) {
+  constructor(parent, bounds, range) {
+      this.parent = parent;
       this.bounds = bounds;
       this.range = range;
   }
 }
 
-// TODO: Resolve whether lineBounds are *local* (within-line) or *global* (within-block).
+class LineGroup {
+  constructor(parent, bounds) {
+    this.parent = parent;
+    this.bounds = bounds;
+    this.children = [];
+  }
+
+  appendChild(child) {
+    this.children.push(child);
+    child.parent = this;
+  }
+}
+
+// TODO: Resolve whether bounds are *local* (within-line) or *global* (within-block).
 class LineLayoutContext {
   constructor(bounds) {
-    this.lineBounds = bounds;
+    this.bounds = bounds;
     this.originalBounds = {width: bounds.width, height: bounds.height, left: bounds.left, top: bounds.top};
     this.nextLineBoxPosition = {x: 0, y: 0};
     this.placedWordFragments = [];
@@ -123,8 +148,8 @@ class LineLayoutContext {
   }
 
   adjustSize(size) {
-    this.lineBounds.width += size.width;
-    this.lineBounds.height += size.height;
+    this.bounds.width += size.width;
+    this.bounds.height += size.height;
   }
 
   consumeLine(indata, break_after) {
@@ -148,26 +173,28 @@ class LineLayoutContext {
     }
 
     var pos = this.nextLineBoxPosition;
-    var globalLeft = this.lineBounds.left + pos.x;
-    var globalTop = this.lineBounds.top + pos.y;
+    var globalLeft = this.bounds.left + pos.x;
+    var globalTop = this.bounds.top + pos.y;
 
-    var data = nextLine(text, pos, this.lineBounds.width,
+    var data = nextLine(text, pos, this.bounds.width,
       this.placedLineFragments.length == 0, break_after);
 
     // TODO: proper references
     if (data.words.length > 0) {
-      var linebox = new LineBox({left: globalLeft,
-                              top: globalTop,
+      var linebox = new LineBox(this, {left: pos.x,
+                              top: pos.y,
                               width: data.bounds.width, height: data.bounds.height},
           data.words.map(function(a) { return a.word; }).join(' '));
       linebox.style = indata.style;
       this.placedLineFragments = this.placedLineFragments.concat(this.placedWordFragments);
       this.placedWordFragments = [];
       this.placedLineFragments.push(linebox);
+      // console.log(linebox.bounds, linebox.range, linebox.parent.bounds);
     }
     if (data.fragment) {
-      data.fragment.bounds.top = globalTop;
-      var wordBox = new LineBox(data.fragment.bounds, data.fragment.word.word);
+      data.fragment.bounds.top = pos.y;
+      var wordBox = new LineBox(this, data.fragment.bounds, data.fragment.word.word);
+      // console.log(wordBox.bounds, wordBox.range, wordBox.parent.bounds);
       wordBox.style = indata.style;
       this.placedWordFragments.push(wordBox);
     }
@@ -194,16 +221,27 @@ class LineLayoutContext {
   }
 
   commit() {
-    pendingFragments = pendingFragments.concat(this.placedLineFragments);
-    var newBounds = {left: this.originalBounds.left, top: this.lineBounds.top + this.lineBounds.height,
+    // TODO: Make this actually do the right thing.
+    for (var i = 0; i < this.placedLineFragments.length; i++) {
+      if (this.placedLineFragments[i].children !== undefined) {
+        for (var j = 0; j < this.placedLineFragments[i].children.length; j++) {
+          pendingFragments.push(this.placedLineFragments[i].children[j]);
+        }
+      } else {
+        pendingFragments.push(this.placedLineFragments[i]);
+      }
+    }
+    var newBounds = {left: this.originalBounds.left, top: this.bounds.top + this.bounds.height,
                      width: this.originalBounds.width, height: this.originalBounds.height};
     var newContext = new LineLayoutContext(newBounds);
     if (this.placedWordFragments.length > 0) {
       var offset = this.placedWordFragments[0].bounds.left;
       for (var i = 0; i < this.placedWordFragments.length; i++) {
         this.placedWordFragments[i].bounds.left -= offset;
-        this.placedWordFragments[i].bounds.top += newContext.lineBounds.height;
+        this.placedWordFragments[i].bounds.top = 0;
         newContext.placedWordFragments.push(this.placedWordFragments[i]);
+
+        this.placedWordFragments[i].parent = newContext;
       }
       var lastFragment = this.placedWordFragments[this.placedWordFragments.length - 1];
       newContext.nextLineBoxPosition.x += lastFragment.bounds.left + lastFragment.bounds.width;
@@ -213,6 +251,8 @@ class LineLayoutContext {
 }
 
 function nextLine(text, pos, width, force, break_after) {
+  pos = {x: pos.x, y: pos.y};
+  var initialLeft = pos.x;
   var words = text.split(/\s+/).filter(function(word) { return word.trim() !== ""; });
   var wordData = [];
   var spaceSize = ctx.measureText(' ').width;
@@ -222,12 +262,7 @@ function nextLine(text, pos, width, force, break_after) {
     var wordWidth = ctx.measureText(word).width;
     var newpos = pos.x + wordWidth;
     if (newpos > width && !force) {
-      var lastPosX = pos.x;
-      var lastPosY = pos.y;
-      pos.x = 0;
-      pos.y += 18; // how to get this?
-      var width = lastPosX;
-      return {bounds: {left: 0, top: lastPosY, width: width, height: 18},
+      return {bounds: {left: initialLeft, top: pos.y, width: pos.x - initialLeft, height: 18},
               pos: pos, words: wordData, remainder: words.slice(i).join(' ')};
     } else {
       force = false;
