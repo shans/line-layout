@@ -103,17 +103,29 @@ function l2g(obj) {
 }
 
 class LineBox {
-  constructor(parent, bounds, range) {
-      this.parent = parent;
-      this.bounds = bounds;
-      this.range = range;
+  constructor(bounds, range) {
+      if (bounds.left == undefined) {
+        adjustContext(range.style);
+        this.bounds = {left: bounds.x, top: bounds.y,
+          width: ctx.measureText(range.data).width, height: 18};
+      } else {
+        this.bounds = {left: bounds.left, top: bounds.top,
+                       width: bounds.width, height: bounds.height};
+      }
+      this.range = range.data;
+      this.style = range.style;
+  }
+
+  commit() {
+    pendingFragments.push(this);
   }
 }
 
 class LineGroup {
   constructor(parent, bounds) {
     this.parent = parent;
-    this.bounds = bounds;
+    this.bounds = {left: bounds.left, top: bounds.top,
+                   width: bounds.width, height: bounds.height};
     this.children = [];
   }
 
@@ -121,6 +133,21 @@ class LineGroup {
     this.children.push(child);
     child.parent = this;
   }
+
+  commit() {
+    this.children.forEach(a => a.commit());
+  }
+}
+
+function adjustContext(indata) {
+  var div = document.createElement('div');
+  currentBlock.appendChild(div);
+  for (var key in indata.style) {
+    div.style[key] = indata.style[key];
+  }
+  var font = getComputedStyle(div).font;
+  ctx.font = font;
+  div.remove();
 }
 
 // TODO: Resolve whether bounds are *local* (within-line) or *global* (within-block).
@@ -153,19 +180,16 @@ class LineLayoutContext {
   }
 
   consumeLine(indata, break_after) {
-    break_after |= (/\s$/.exec(indata.data) !== null);
-    var break_before = (/^\s/.exec(indata.data) !== null) || this.placedWordFragments.length == 0;
-    var text = indata.data.trim();
-
-    // adjust context font so we're measuring the right thing.
-    var div = document.createElement('div');
-    currentBlock.appendChild(div);
-    for (var key in indata.style) {
-      div.style[key] = indata.style[key];
+    if (indata.children !== undefined) {
+      var break_before = this.placedWordFragments.length == 0;
+      var text = indata;
+    } else {
+      break_after |= (/\s$/.exec(indata.data) !== null);
+      var break_before = (/^\s/.exec(indata.data) !== null) || this.placedWordFragments.length == 0;
+      var text = indata.data.trim();
     }
-    var font = getComputedStyle(div).font;
-    ctx.font = font;
-    div.remove();
+    // adjust context font so we're measuring the right thing.
+    adjustContext(indata);
 
     // insert a space if we haven't at the end of the previous run.
     if (break_before && !this.break) {
@@ -179,13 +203,16 @@ class LineLayoutContext {
     var data = nextLine(text, pos, this.bounds.width,
       this.placedLineFragments.length == 0, break_after);
 
+    if (text.children)
+      console.log(data);
+
     // TODO: proper references
     if (data.words.length > 0) {
-      var linebox = new LineBox(this, {left: pos.x,
+      var linebox = new LineBox({left: pos.x,
                               top: pos.y,
                               width: data.bounds.width, height: data.bounds.height},
-          data.words.map(function(a) { return a.word; }).join(' '));
-      linebox.style = indata.style;
+          {data: data.words.map(function(a) { return a.word; }).join(' '), style: indata.style});
+      linebox.parent = this;
       this.placedLineFragments = this.placedLineFragments.concat(this.placedWordFragments);
       this.placedWordFragments = [];
       this.placedLineFragments.push(linebox);
@@ -193,9 +220,15 @@ class LineLayoutContext {
     }
     if (data.fragment) {
       data.fragment.bounds.top = pos.y;
-      var wordBox = new LineBox(this, data.fragment.bounds, data.fragment.word.word);
+      if (data.fragment.word.word.children !== undefined) {
+        var wordBox = data.fragment.word.word;
+        wordBox.bounds.left = data.fragment.bounds.left;
+        wordBox.bounds.top = data.fragment.bounds.top;
+      }
+      else
+        var wordBox = new LineBox(data.fragment.bounds, {data: data.fragment.word.word, style: indata.style});
+      wordBox.parent = this;
       // console.log(wordBox.bounds, wordBox.range, wordBox.parent.bounds);
-      wordBox.style = indata.style;
       this.placedWordFragments.push(wordBox);
     }
 
@@ -221,16 +254,8 @@ class LineLayoutContext {
   }
 
   commit() {
-    // TODO: Make this actually do the right thing.
-    for (var i = 0; i < this.placedLineFragments.length; i++) {
-      if (this.placedLineFragments[i].children !== undefined) {
-        for (var j = 0; j < this.placedLineFragments[i].children.length; j++) {
-          pendingFragments.push(this.placedLineFragments[i].children[j]);
-        }
-      } else {
-        pendingFragments.push(this.placedLineFragments[i]);
-      }
-    }
+    this.placedLineFragments.forEach(a => a.commit());
+
     var newBounds = {left: this.originalBounds.left, top: this.bounds.top + this.bounds.height,
                      width: this.originalBounds.width, height: this.originalBounds.height};
     var newContext = new LineLayoutContext(newBounds);
@@ -253,20 +278,27 @@ class LineLayoutContext {
 function nextLine(text, pos, width, force, break_after) {
   pos = {x: pos.x, y: pos.y};
   var initialLeft = pos.x;
-  var words = text.split(/\s+/).filter(function(word) { return word.trim() !== ""; });
+  if (text.children == undefined)
+    var words = text.split(/\s+/).filter(function(word) { return word.trim() !== ""; });
+  else
+    var words = [text];
+
   var wordData = [];
   var spaceSize = ctx.measureText(' ').width;
   var fragmentData = null;
   for (var i = 0; i < words.length; i++) {
     var word = words[i];
-    var wordWidth = ctx.measureText(word).width;
+    if (text.children == undefined)
+      var wordWidth = ctx.measureText(word).width;
+    else
+      var wordWidth = word.bounds.width;
+
     var newpos = pos.x + wordWidth;
     if (newpos > width && !force) {
       return {bounds: {left: initialLeft, top: pos.y, width: pos.x - initialLeft, height: 18},
               pos: pos, words: wordData, remainder: words.slice(i).join(' ')};
-    } else {
-      force = false;
     }
+    force = false;
     var wordItem = {left: pos.x, top: pos.y, word: word};
     pos.x += wordWidth;
     if (i < words.length - 1 || break_after) {

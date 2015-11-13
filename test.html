@@ -17,7 +17,10 @@ laboris nisi</my-b> ut aliquip ex ea <x-ruby>commodo<x-rb>aglagl</x-rb></x-ruby>
 in <my-b>reprehenderit</my-b> in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Exc<my-b>ept</my-b>eur
 <x-ruby>sint<x-rb>電車</x-rb></x-ruby> occaecat cupi<my-b>datat</my-b> non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+</div>
 
+<div style='margin-top: 20px; width: 90px; border: solid black 1px; '>
+This is before<x-ruby>ruby<x-rb>ruby</x-rb></x-ruby> yo.
 </div>
 
 <script>
@@ -55,32 +58,23 @@ registerInlineLayout('ruby',
       var text = {data: data[1].node.firstChild.nodeValue, style: {}};
       var pos = context.nextLineBoxPosition;
 
-      var data = context.consumeLine(base);
-      if (data !== null) {
-        context = context.commit();
-        pos = context.nextLineBoxPosition;
-        context.consumeLine(base);
-      }
-      context.adjustSize({width: 0, height: 8});
-      context.adjustPosition({x: 0, y: 8});
-      var fragment = context.placedWordFragments.pop();
+      var fragment = new LineBox({x: 0, y: 0}, base);
       var group = new LineGroup(context, fragment.bounds);
-      fragment.bounds = {top: 0, left: 0, width: fragment.bounds.width, height: fragment.bounds.height};
       group.appendChild(fragment);
 
       text.style.fontSize = "30%";
-      var textContext = new LineLayoutContext(
-        {width: fragment.bounds.width, height: fragment.bounds.height * 0.3,
-        left: fragment.bounds.left, top: l2g(fragment).top - fragment.bounds.height * 0.5});
-      console.log(textContext);
-      textContext.consumeLine(text, true);
-      var fragment2 = textContext.placedLineFragments.pop();
-      fragment2.bounds.top -= fragment.bounds.height * 0.5;
-      group.appendChild(fragment2);
+      var annotation = new LineBox({x: 0, y: -9}, text);
+      group.appendChild(annotation);
 
-      // context.nextLineBoxPosition = pos;
-      context.placedWordFragments.push(group);
-      //console.log(base, text);
+      while (true) {
+        data = context.consumeLine(group);
+        if (data == null)
+          break;
+        context = context.commit();
+      }
+      context.adjustSize({width: 0, height: 8});
+      context.adjustPosition({x: 0, y: 8});
+
       return context;
     }
   },
