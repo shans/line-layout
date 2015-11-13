@@ -40,12 +40,12 @@ function layoutBlock(block) {
     {acceptNode: function(node) { return NodeFilter.FILTER_ACCEPT} });
   var node = walker.nextNode();
   var pos = {x: 0, y: block.offsetTop};
-  var context = new LineLayoutContext({left: pos.x, top: pos.y, width: block.offsetWidth, height: 18});
+  var line = new Line({left: pos.x, top: pos.y, width: block.offsetWidth, height: 18});
   while (node) {
     if (node.nodeType == 3) {
       var text = node.nodeValue;
-      context = placeText(context, text);
-      pos = context.nextLineBoxPosition;
+      line = placeText(line, text);
+      pos = line.nextSegmentPosition;
       node = walker.nextNode();
     } else if (node.nodeType == 1) {
       if (node._inlineLayout) {
@@ -59,7 +59,7 @@ function layoutBlock(block) {
           content = walker.nextNode();
         }
         custom = layouts[node._inlineLayout];
-        context = layouts[node._inlineLayout].layout(context, contents);
+        line = layouts[node._inlineLayout].layout(line, contents);
         custom = undefined;
         node = content;
       } else {
@@ -67,7 +67,7 @@ function layoutBlock(block) {
       }
     }
   }
-  context.commit();
+  line.terminate();
 
   var x_offset = block.offsetLeft;
 
@@ -105,7 +105,7 @@ function l2g(obj) {
           width: obj.bounds.width, height: obj.bounds.height};
 }
 
-class LineBox {
+class Segment {
   constructor(bounds, range) {
       if (bounds.left == undefined) {
         adjustContext(range.style);
@@ -127,7 +127,7 @@ class LineBox {
   }
 }
 
-class LineGroup {
+class SegmentGroup {
   constructor(parent, bounds) {
     this.parent = parent;
     this.bounds = {left: bounds.left, top: bounds.top,
@@ -160,19 +160,19 @@ function adjustContext(indata) {
 }
 
 // TODO: Resolve whether bounds are *local* (within-line) or *global* (within-block).
-class LineLayoutContext {
+class Line {
   constructor(bounds) {
     this.bounds = bounds;
     this.originalBounds = {width: bounds.width, height: bounds.height, left: bounds.left, top: bounds.top};
-    this.nextLineBoxPosition = {x: 0, y: 0};
+    this.nextSegmentPosition = {x: 0, y: 0};
     this.placedWordFragments = [];
     this.placedLineFragments = [];
     this.break = true;
   }
 
   adjustPosition(position) {
-    this.nextLineBoxPosition.x += position.x;
-    this.nextLineBoxPosition.y += position.y;
+    this.nextSegmentPosition.x += position.x;
+    this.nextSegmentPosition.y += position.y;
     for (var i = 0; i < this.placedLineFragments.length; i++) {
       this.placedLineFragments[i].bounds.left += position.x;
       this.placedLineFragments[i].bounds.top += position.y;
@@ -188,7 +188,7 @@ class LineLayoutContext {
     this.bounds.height += size.height;
   }
 
-  consumeLine(indata, break_after) {
+  consume(indata, break_after) {
     if (indata.children !== undefined) {
       var break_before = this.placedWordFragments.length == 0;
       var text = indata;
@@ -197,15 +197,15 @@ class LineLayoutContext {
       var break_before = (/^\s/.exec(indata.data) !== null) || this.placedWordFragments.length == 0;
       var text = indata.data.trim();
     }
-    // adjust context font so we're measuring the right thing.
+    // adjust line font so we're measuring the right thing.
     adjustContext(indata);
 
     // insert a space if we haven't at the end of the previous run.
     if (break_before && !this.break) {
-      this.nextLineBoxPosition.x += ctx.measureText(' ').width;
+      this.nextSegmentPosition.x += ctx.measureText(' ').width;
     }
 
-    var pos = this.nextLineBoxPosition;
+    var pos = this.nextSegmentPosition;
     var globalLeft = this.bounds.left + pos.x;
     var globalTop = this.bounds.top + pos.y;
 
@@ -217,7 +217,7 @@ class LineLayoutContext {
 
     // TODO: proper references
     if (data.words.length > 0) {
-      var linebox = new LineBox({left: pos.x,
+      var linebox = new Segment({left: pos.x,
                               top: pos.y,
                               width: data.bounds.width, height: data.bounds.height},
           {data: data.words.map(function(a) { return a.word; }).join(' '), style: indata.style});
@@ -235,7 +235,7 @@ class LineLayoutContext {
         wordBox.bounds.top = data.fragment.bounds.top;
       }
       else
-        var wordBox = new LineBox(data.fragment.bounds, {data: data.fragment.word.word, style: indata.style});
+        var wordBox = new Segment(data.fragment.bounds, {data: data.fragment.word.word, style: indata.style});
       wordBox.parent = this;
       // console.log(wordBox.bounds, wordBox.range, wordBox.parent.bounds);
       this.placedWordFragments.push(wordBox);
@@ -243,7 +243,7 @@ class LineLayoutContext {
 
     // console.log("in: ", indata.data, break_before, break_after);
     // console.log("out: ", JSON.stringify(this.placedLineFragments), JSON.stringify(this.placedWordFragments));
-    this.nextLineBoxPosition = {x: data.bounds.left + data.bounds.width, y: data.bounds.top}
+    this.nextSegmentPosition = {x: data.bounds.left + data.bounds.width, y: data.bounds.top}
 
     // record break status so we don't double-up on breaks.
     if (data.remainder == null && !break_after) {
@@ -262,14 +262,14 @@ class LineLayoutContext {
     return null;
   }
 
-  commit() {
+  terminate() {
     var callbackCandidates = []
     this.placedLineFragments.forEach(a => a.commit(callbackCandidates));
-    callbackCandidates.forEach(a => a.onCommit && a.onCommit(this));
+    callbackCandidates.forEach(a => a.onTerminate && a.onTerminate(this));
 
     var newBounds = {left: this.originalBounds.left, top: this.bounds.top + this.bounds.height,
                      width: this.originalBounds.width, height: this.originalBounds.height};
-    var newContext = new LineLayoutContext(newBounds);
+    var newContext = new Line(newBounds);
     if (this.placedWordFragments.length > 0) {
       var offset = this.placedWordFragments[0].bounds.left;
       for (var i = 0; i < this.placedWordFragments.length; i++) {
@@ -280,7 +280,7 @@ class LineLayoutContext {
         this.placedWordFragments[i].parent = newContext;
       }
       var lastFragment = this.placedWordFragments[this.placedWordFragments.length - 1];
-      newContext.nextLineBoxPosition.x += lastFragment.bounds.left + lastFragment.bounds.width;
+      newContext.nextSegmentPosition.x += lastFragment.bounds.left + lastFragment.bounds.width;
     }
     return newContext;
   }
@@ -327,15 +327,15 @@ function nextLine(text, pos, width, force, break_after) {
     pos: pos, words: wordData, fragment: fragmentData, remainder: null};
 }
 
-function placeText(context, text) {
+function placeText(line, text) {
   var data = {data: text, style: {}};
   while (true) {
-    data = context.consumeLine(data);
+    data = line.consume(data);
     if (data == null)
       break;
-    context = context.commit();
+    line = line.terminate();
   }
-  return context;
+  return line;
 }
 
   //  measureText(text, getComputedStyle(block))

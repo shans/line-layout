@@ -28,21 +28,21 @@ This is before <x-ruby>ruby<x-rb>ruby</x-rb></x-ruby>after.
 
 registerInlineLayout('my-b',
   class {
-    layout(context, data) {
-      //context = context.commit();
-      //context.adjustPosition({x: 0, y: 10});
-      //context.adjustSize({width: 0, height: 10});
+    layout(line, data) {
+      //line = line.terminate();
+      //line.adjustPosition({x: 0, y: 10});
+      //line.adjustSize({width: 0, height: 10});
       data = data[0];
       data.style.fontWeight = "bold";
       data.style.fontStyle = "italic";
       while (true) {
-        data = context.consumeLine(data);
+        data = line.consume(data);
         if (data == null)
           break;
-        context = context.commit();
+        line = line.terminate();
       }
-      //context.adjustSize({width: 0, height: 10});
-      return context;//.commit();
+      //line.adjustSize({width: 0, height: 10});
+      return line;//.terminate();
     }
   },
   { });
@@ -53,28 +53,26 @@ registerInlineLayout('my-b',
 
 registerInlineLayout('ruby',
   class {
-    layout(context, data) {
+    layout(line, data) {
       var base = data[0];
       var text = {data: data[1].node.firstChild.nodeValue, style: {}};
-      var pos = context.nextLineBoxPosition;
 
-      var fragment = new LineBox({x: 0, y: 0}, base);
-      var group = new LineGroup(context, fragment.bounds);
-      group.appendChild(fragment);
+      var base = new Segment({x: 0, y: 0}, base);
+      var group = new SegmentGroup(line, base.bounds);
+      group.appendChild(base);
 
       text.style.fontSize = "30%";
-      var annotation = new LineBox({x: 0, y: -9}, text);
+      var annotation = new Segment({x: 0, y: -9}, text);
       group.appendChild(annotation);
 
-      while (true) {
-        data = context.consumeLine(group);
-        if (data == null)
-          break;
-        context = context.commit();
+      if (line.consume(group) !== null) {
+        line = line.terminate();
+        line.consume(group);
       }
-      return context;
+      
+      return line;
     }
-    onCommit(line) {
+    onTerminate(line) {
       line.adjustSize({width: 0, height: 8});
       line.adjustPosition({x: 0, y: 8});
     }
