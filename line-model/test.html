@@ -19,8 +19,8 @@ Exc<my-b>ept</my-b>eur
 <x-ruby>sint<x-rb>電車</x-rb></x-ruby> occaecat cupi<my-b>datat</my-b> non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 </div>
 
-<div style='margin-top: 20px; width: 90px; border: solid black 1px; '>
-This is before<x-ruby>ruby<x-rb>ruby</x-rb></x-ruby> yo.
+<div style='margin-top: 20px; width: 130px; border: solid black 1px; '>
+This is before <x-ruby>ruby<x-rb>ruby</x-rb></x-ruby>after.
 </div>
 
 <script>
@@ -72,10 +72,11 @@ registerInlineLayout('ruby',
           break;
         context = context.commit();
       }
-      context.adjustSize({width: 0, height: 8});
-      context.adjustPosition({x: 0, y: 8});
-
       return context;
+    }
+    onCommit(line) {
+      line.adjustSize({width: 0, height: 8});
+      line.adjustPosition({x: 0, y: 8});
     }
   },
   { });

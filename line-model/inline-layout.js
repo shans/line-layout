@@ -31,6 +31,7 @@ function layoutHappened() {
 
 var pendingFragments = [];
 var currentBlock = undefined;
+var custom = undefined;
 
 function layoutBlock(block) {
   ctx.font = getComputedStyle(block).font;
@@ -57,7 +58,9 @@ function layoutBlock(block) {
             contents.push({node: content, style: {}});
           content = walker.nextNode();
         }
+        custom = layouts[node._inlineLayout];
         context = layouts[node._inlineLayout].layout(context, contents);
+        custom = undefined;
         node = content;
       } else {
         node = walker.nextNode();
@@ -114,9 +117,12 @@ class LineBox {
       }
       this.range = range.data;
       this.style = range.style;
+      this.custom = custom;
   }
 
-  commit() {
+  commit(callbackCandidates) {
+    if ((this.custom !== undefined) && (callbackCandidates.indexOf(this.custom) == -1))
+      callbackCandidates.push(this.custom);
     pendingFragments.push(this);
   }
 }
@@ -127,6 +133,7 @@ class LineGroup {
     this.bounds = {left: bounds.left, top: bounds.top,
                    width: bounds.width, height: bounds.height};
     this.children = [];
+    this.custom = custom;
   }
 
   appendChild(child) {
@@ -134,8 +141,10 @@ class LineGroup {
     child.parent = this;
   }
 
-  commit() {
-    this.children.forEach(a => a.commit());
+  commit(callbackCandidates) {
+    if (this.custom !== undefined && callbackCandidates.indexOf(this.custom) == -1)
+      callbackCandidates.push(this.custom);
+    this.children.forEach(a => a.commit(callbackCandidates));
   }
 }
 
@@ -254,7 +263,9 @@ class LineLayoutContext {
   }
 
   commit() {
-    this.placedLineFragments.forEach(a => a.commit());
+    var callbackCandidates = []
+    this.placedLineFragments.forEach(a => a.commit(callbackCandidates));
+    callbackCandidates.forEach(a => a.onCommit && a.onCommit(this));
 
     var newBounds = {left: this.originalBounds.left, top: this.bounds.top + this.bounds.height,
                      width: this.originalBounds.width, height: this.originalBounds.height};
