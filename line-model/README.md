@@ -80,5 +80,38 @@ registerInlineLayout("name-of-layouter", class {
                            correctly compute inline layout */ ] }
 );
 ```
+## InlineReference objects
 
+IDL:
+```
+interface InlineReference {
+  attribute StylePropertyMap style;
+}
+
+[Constructor(Node)]
+interface NodeReference : InlineReference {
+  readonly attribute Node node;
+}
+
+[Constructor(DOMString)]
+interface TextReference : InlineReference {
+  readonly attribute DOMString data;
+}
+```
+
+InlineReferences provide a view on content that is in the DOM. Because InlineLayout classes will run in Worklets,
+direct DOM access is not possible. Instead, InlineReferences attempt to provide a useful abstraction of DOM 
+information.
+
+## Lines
+
+## Segments and SegmentGroups
+
+## Required extensions to this API
+
+* No facility is yet provided to perform non-standard segmentation. It's possible to implement this manually, but .. ugh.
+* There's no mechanism provided to assess the result of standard segmentation, nor to look at bidi decisions.
+* Nesting of custom tags (e.g. ruby inside ruby) needs to be more carefully considered.
+* We need to work out the full set of baselines, etc. that should be provided by Line, Segment, and SegmentGroup.
+* Utility methods to work with InlineReferences will make a lot of things easier.
   
