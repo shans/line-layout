@@ -87,7 +87,8 @@ function layoutBlock(block) {
     div.style.left = (bounds.left + x_offset) + 'px';
     div.style.top = bounds.top + 'px';
     for (var key in fragment.style) {
-      div.style[key] = fragment.style[key];
+      if (fragment.style.hasOwnProperty(key))
+        div.style[key] = fragment.style[key];
     }
     block.appendChild(div);
   }
