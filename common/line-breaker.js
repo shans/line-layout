@@ -3,6 +3,7 @@
 // Minimal line breaker for the test purpose.
 (function (exports) {
   var ULineBreak = {
+    BEGINNING_OF_LINE: 0,
     ALPHABETIC: 2,
     CLOSE_PUNCTUATION: 8,
     IDEOGRAPHIC: 14,
@@ -48,6 +49,8 @@
 
   function canBreakBetweenLineBreakValues(value1, value2) {
     switch (value1) {
+      case ULineBreak.BEGINNING_OF_LINE:
+        return false;
       case ULineBreak.SPACE:
         return value2 != ULineBreak.SPACE;
       case ULineBreak.OPEN_PUNCTUATION:
@@ -60,6 +63,23 @@
   }
 
   exports.LineBreaker = class LineBreaker {
+    constructor() {
+      this._lastLineBreakValue = ULineBreak.BEGINNING_OF_LINE;
+    }
+
+    // Add `ch` to the current line breaking context, and returns whether a
+    // break opportunity exists before `ch`.
+    canBreakBefore(ch) {
+      var value = lineBreakValue(ch.charCodeAt(0));
+      var hasBreakOpportunityBefore = canBreakBetweenLineBreakValues(this._lastLineBreakValue, value);
+      this._lastLineBreakValue = value;
+      return hasBreakOpportunityBefore;
+    }
+
+    // Returns whether a break opportunity exists between `ch1` and `ch2`. This
+    // function is convenient, but please keep in mind that ICU often requires
+    // more context than two characters that relying on this function too much
+    // may make the architecture harder to implement.
     static canBreakBetween(ch1, ch2) {
       return canBreakBetweenLineBreakValues(lineBreakValue(ch1.charCodeAt(0)), lineBreakValue(ch2.charCodeAt(0)));
     }

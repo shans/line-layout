@@ -3,42 +3,58 @@ var assert = require("assert");
 var target = require("../line-breaker.js");
 
 describe("LineBreaker", function () {
-  describe("canBreakBetween", function () {
-    var canBreakBetween = target.LineBreaker.canBreakBetween;
 
+  function testBetweenTwoCharacters(func) {
     [
-      ['A', 'A', false],
-      ['A', ' ', false],
-      [' ', ' ', false],
-      [' ', 'A', true],
+        ['A', 'A', false],
+        ['A', ' ', false],
+        [' ', ' ', false],
+        [' ', 'A', true],
 
-      ['A', '.', false],
-      ['A', ')', false],
-      ['(', 'A', false],
+        ['A', '.', false],
+        ['A', ')', false],
+        ['(', 'A', false],
 
-      ['あ', 'あ', true],
-      ['A', 'あ', true],
-      ['あ', 'A', true],
+        ['あ', 'あ', true],
+        ['A', 'あ', true],
+        ['あ', 'A', true],
 
-      ['あ', '、', false],
-      ['あ', '。', false],
+        ['あ', '、', false],
+        ['あ', '。', false],
 
-      ['あ', '(', true],
-      ['あ', ')', false],
-      ['(', 'あ', false],
-      [')', 'あ', true],
+        ['あ', '(', true],
+        ['あ', ')', false],
+        ['(', 'あ', false],
+        [')', 'あ', true],
 
-      ['あ', '（', true],
-      ['あ', '）', false],
-      ['（', 'あ', false],
-      ['）', 'あ', true],
+        ['あ', '（', true],
+        ['あ', '）', false],
+        ['（', 'あ', false],
+        ['）', 'あ', true],
     ].forEach(function (arg) {
-      it(arg[0] + " + " + arg[1]
-        + " (U+" + arg[0].charCodeAt(0).toString(16)
-        + " + U+" + arg[1].charCodeAt(0).toString(16)
+      var ch1 = arg[0];
+      var ch2 = arg[1];
+      var expected = arg[2];
+      var actual = func(ch1, ch2);
+      it(ch1 + " + " + ch2
+        + " (U+" + ch1.charCodeAt(0).toString(16)
+        + " + U+" + ch2.charCodeAt(0).toString(16)
         + ") => " + arg[2], function () {
-        assert.equal(canBreakBetween(arg[0], arg[1]), arg[2]);
-      });
+          assert.equal(actual, expected);
+        });
+    });
+  }
+
+  describe("canBreakBetween", function () {
+    testBetweenTwoCharacters(target.LineBreaker.canBreakBetween);
+  });
+
+  describe("canBreakBefore", function () {
+    var LineBreaker = target.LineBreaker;
+    testBetweenTwoCharacters((ch1, ch2) => {
+      var lineBreaker = new LineBreaker;
+      lineBreaker.canBreakBefore(ch1);
+      return lineBreaker.canBreakBefore(ch2);
     });
   });
 });
