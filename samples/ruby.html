@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../common/line-breaker.js"></script>
+<script src="../line-model/inline-layout.js"></script>
+<style>
+.test {
+  background-color: #EEE;
+  clear: both;
+  font-family: 'MS Gothic';
+  font-size: 12pt;
+  line-height: 1.8;
+  margin: 0 0 .5em 0;
+  width: 100%;
+}
+
+.source, .output {
+  background-color:antiquewhite;
+  width: 49%;
+}
+
+.source {
+  float: left;
+}
+
+.output {
+  margin-left: 51%;
+}
+</style>
+<div title="text-rt" class="source">
+  <ruby>我<rt>わが</rt></ruby>。
+</div>
+<div title="rb-rt" class="source">
+  <ruby><rb>我</rb><rt>わが</rt></ruby>。
+</div>
+<div title="rb-rt-rb-rt" class="source">
+  <ruby><rb>我</rb><rt>わが</rt><rb>国</rb><rt>くに</rt></ruby>。
+</div>
+<div title="rb-rb-rt-rt" class="source">
+  <ruby><rb>我</rb><rb>国</rb><rt>わが</rt><rt>くに</rt></ruby>。
+</div>
+<div class="source">
+  <ruby><rb>我国</rb><rt>わがくに</rt></ruby>に<ruby><rb>於</rb><rt>おい</rt></ruby>て<ruby><rb>山登</rb><rt>やまのぼ</rt></ruby>りが<ruby><rb>始</rb><rt>はじ</rt></ruby>められたのは<ruby><rb>何</rb><rt>なん</rt></ruby><ruby><rb>時</rb><rt>じ</rt></ruby><ruby><rb>頃</rb><rt>ごろ</rt></ruby>からであるか、<ruby><rb>元</rb><rt>もと</rt></ruby>より<ruby><rb>判然</rb><rt>はんぜん</rt></ruby>たることは<ruby><rb>知</rb><rt>し</rt></ruby>る<ruby><rb>由</rb><rt>よし</rt></ruby>もないが、<ruby><rb>遡</rb><rt>さかのぼ</rt></ruby>って<ruby><rb>遠</rb><rt>とお</rt></ruby>く<ruby><rb>其</rb><rp>（</rp><rt>その</rt><rp>）</rp></ruby><ruby><rb>源</rb><rt>みなもと</rt></ruby>を<ruby><rb>探</rb><rt>さぐ</rt></ruby>って<ruby><rb>見</rb><rt>み</rt></ruby>ると、<ruby><rb>狩猟</rb><rt>しゅりょう</rt></ruby>を<ruby><rb>以</rb><rp>（</rp><rt>もっ</rt><rp>）</rp></ruby>て<ruby><rb>生活</rb><rt>せいかつ</rt></ruby>の<ruby><rb>資</rb><rt>し</rt></ruby>を<ruby><rb>得</rb><rt>え</rt></ruby>ていた<ruby><rb>原始</rb><rt>げんし</rt></ruby><ruby><rb>民族</rb><rt>みんぞく</rt></ruby>に<ruby><rb>依</rb><rt>よ</rt></ruby>りて、<ruby><rb>恐</rb><rt>おそ</rt></ruby>らく<ruby><rb>最初</rb><rt>さいしょ</rt></ruby>の<ruby><rb>山登</rb><rt>やまのぼ</rt></ruby>りが<ruby><rb>行</rb><rt>おこな</rt></ruby>われたであろうことは<ruby><rb>想像</rb><rt>そうぞう</rt></ruby>するに<ruby><rb>難</rb><rt>かた</rt></ruby>くない。もとより<ruby><rb>到</rb><rt>いた</rt></ruby>る<ruby><rb>処</rb><rt>しょ</rt></ruby>に<ruby><rb>獲物</rb><rt>えもの</rt></ruby>の<ruby><rb>多</rb><rt>おお</rt></ruby>かったことが<ruby><rb>考</rb><rt>かんが</rt></ruby>えられる<ruby><rb>原始時代</rb><rt>げんしじだい</rt></ruby>には、<ruby><rb>深山</rb><rt>ふかやま</rt></ruby><ruby><rb>幽谷</rb><rt>ゆうこく</rt></ruby>をあさる<ruby><rb>迄</rb><rt>まで</rt></ruby>もなく、<ruby><rb>平地</rb><rt>ひらち</rt></ruby>の<ruby><rb>森林</rb><rt>しんりん</rt></ruby>、<ruby><rb>原野</rb><rt>はらの</rt></ruby>、<ruby><rb>河沼</rb><rt>かわぬま</rt></ruby><ruby><rb>等</rb><rt>ひとし</rt></ruby>に<ruby><rb>於</rb><rt>おい</rt></ruby>て<ruby><rb>充分</rb><rt>じゅうぶん</rt></ruby><ruby><rb>日常</rb><rt>にちじょう</rt></ruby>の<ruby><rb>生活</rb><rt>せいかつ</rt></ruby><ruby><rb>資料</rb><rt>しりょう</rt></ruby>が<ruby><rb>得</rb><rt>え</rt></ruby>られた<ruby><rb>筈</rb><rt>はず</rt></ruby>であるから、<ruby><rb>山</rb><rt>やま</rt></ruby>に<ruby><rb>登</rb><rt>のぼ</rt></ruby>ることなどは<ruby><rb>殆</rb><rt>ほとん</rt></ruby>ど<ruby><rb>必要</rb><rt>ひつよう</rt></ruby>が<span class="notes">［＃「<ruby><rb>必要</rb><rt>ひつよう</rt></ruby>が」は<ruby><rb>底本</rb><rt>ていほん</rt></ruby>では「<ruby><rb>心</rb><rt>こころ</rt></ruby><ruby><rb>要</rb><rt>よう</rt></ruby>が」］</span>なかったろう。しかし<ruby><rb>大</rb><rt>おお</rt></ruby>きな<ruby><rb>獲物</rb><rt>えもの</rt></ruby>の<ruby><rb>前</rb><rt>まえ</rt></ruby>には、すべてを<ruby><rb>忘</rb><rt>わす</rt></ruby>れて<ruby><rb>之</rb><rp>（</rp><rt>これ</rt><rp>）</rp></ruby>を<ruby><rb>追跡</rb><rt>ついせき</rt></ruby>する<ruby><rb>彼等</rb><rt>かれら</rt></ruby>の<ruby><rb>習性</rb><rt>しゅうせい</rt></ruby>から<ruby><rb>推</rb><rt>お</rt></ruby>して、<ruby><rb>斯</rb><rp>（</rp><rt>かか</rt><rp>）</rp></ruby>る<ruby><rb>場合</rb><rt>ばあい</rt></ruby>、<ruby><rb>山</rb><rt>やま</rt></ruby>へ<ruby><rb>登</rb><rt>のぼ</rt></ruby>ることが<ruby><rb>無</rb><rt>な</rt></ruby>かったとは<ruby><rb>断言</rb><rt>だんげん</rt></ruby>するを<ruby><rb>得</rb><rt>え</rt></ruby>ない。<ruby><rb>現</rb><rt>げん</rt></ruby>に<ruby><rb>二</rb><rt>に</rt></ruby><ruby><rb>千</rb><rt>せん</rt></ruby><ruby><rb>米</rb><rt>めーとる</rt></ruby><ruby><rb>近</rb><rt>ちか</rt></ruby>い<ruby><rb>山</rb><rt>やま</rt></ruby>の<ruby><rb>上</rb><rt>うえ</rt></ruby>で<ruby><rb>石鏃</rb><rp>（</rp><rt>せきぞく</rt><rp>）</rp></ruby>や<ruby><rb>特種</rb><rt>とくしゅ</rt></ruby>の<ruby><rb>石器</rb><rt>せっき</rt></ruby>などが<ruby><rb>時</rb><rt>とき</rt></ruby>として<ruby><rb>発見</rb><rt>はっけん</rt></ruby>されることがあるのは其<ruby><rb>証拠</rb><rt>しょうこ</rt></ruby>ではあるまいか、<ruby><rb>或</rb><rt>あるい</rt></ruby>は<ruby><rb>矢</rb><rt>や</rt></ruby>を<ruby><rb>負</rb><rt>お</rt></ruby>うた<ruby><rb>獣類</rb><rt>じゅうるい</rt></ruby>が<ruby><rb>山上</rb><rt>さんじょう</rt></ruby>に<ruby><rb>逃</rb><rt>のが</rt></ruby>れて<ruby><rb>其処</rb><rp>（</rp><rt>そこ</rt><rp>）</rp></ruby>で<ruby><rb>斃死</rb><rp>（</rp><rt>へいし</rt><rp>）</rp></ruby>したことも<ruby><rb>考</rb><rt>かんが</rt></ruby>えられるが、<ruby><rb>総</rb><rt>すべ</rt></ruby>てがそうであったとは<ruby><rb>云</rb><rt>い</rt></ruby>えないであろう。
+</div>
+<script>
+'use strict';
+
+class RubyLayout {
+  layout(line, data) {
+    //console.log("layout: ", data);
+    var pairs = this.pairsFromData(data);
+    //console.log("pairs=", pairs);
+    for (let pair of pairs) {
+      // TODO: NYI: base can break if its whitespace property is set to breakable values.
+      // Need to split data into multiple segments in that case.
+      // TODO: Or does API do it? In that case, we need to combine multiple data to form a ruby pair.
+      var base = new Segment({ x: 0, y: 0 },
+         pair.base.data ? pair.base : { data: pair.base.textContent, style: {} });
+      var group = new SegmentGroup(line, base.bounds);
+      group.appendChild(base);
+
+      var annotation = { data: pair.annotation.textContent, style: { fontSize: "50%" } };
+      group.appendChild(new Segment({ x: 0, y: -9 }, annotation));
+
+      if (line.consume(group) !== null) {
+        console.log("terminate after " + base.data);
+        line = line.terminate();
+        line.consume(group);
+      }
+    }
+    return line;
+  }
+
+  pairsFromData(data) {
+    var lastNode = null;
+    var bases = [];
+    var annotations = [];
+    for (var i = 0; i < data.length;) {
+      // When it starts with a text node, concatenate them to build a base.
+      // TODO: NYI to support multiple text nodes in a row.
+      if (data[i].data) {
+        bases.push(data[i]);
+        i++;
+        continue;
+      }
+
+      var node = data[i].node;
+      console.assert(node && node.nodeType == Node.ELEMENT_NODE);
+      //console.log(node);
+      switch (node.tagName.toLowerCase()) {
+        case "rb":
+          bases.push(node);
+          break;
+        case "rt":
+          annotations.push(node);
+          break;
+        case "rp":
+          // TODO: NYI non-default (displayable) rp.
+          break;
+        default:
+          // TODO: NYI to support "rtc".
+          // TODO: NYI to support other inline elements.
+          // TODO: NYI to support block elements -- not sure what to do.
+          console.assert(false, "tag=" + node.tagName);
+          break;
+      }
+      i = RubyLayout.skipDescendants(data, i + 1, node);
+    }
+    var pairs = [];
+    for (var i = 0; i < bases.length; i++)
+      pairs.push({ base: bases[i], annotation: annotations[i] });
+    //console.log(bases, annotations, pairs);
+    return pairs;
+  }
+
+  // TODO: API should provide node-like or TreeWalker-like. This should not belong to custom classes.
+  static skipDescendants(data, i, parentNode) {
+    for (; i < data.length; ) {
+      var node = data[i].node;
+      if (!node) {
+        // TODO: Should check parent of the text node, but it's not available in the current API.
+        i++;
+        continue;
+      }
+      console.assert(node && node.nodeType == Node.ELEMENT_NODE);
+      if (node.parentNode != parentNode)
+        return i;
+      i = skipDescendants(data, i, node);
+    }
+  }
+
+  onTerminate(line) {
+    line.adjustSize({ width: 0, height: 8 });
+    line.adjustPosition({ x: 0, y: 8 });
+  }
+}
+
+registerInlineLayout('ruby', RubyLayout, {});
+
+run();
+function run() {
+  Array.prototype.forEach.call(document.querySelectorAll(".source"), function (source) {
+    // Ensure the source is wrapped with a test div.
+    var parent = source.parentElement;
+    console.log(parent.classList);
+    if (Array.prototype.indexOf.call(parent.classList, "test") < 0) {
+      var wrapper = document.createElement("div");
+      wrapper.className = "test";
+      parent.replaceChild(wrapper, source);
+      wrapper.appendChild(source);
+    }
+
+    var output = source.cloneNode(true);
+    output.classList.remove("source");
+    output.classList.add("output");
+    output = replaceTagName(output, { "ruby": "x-ruby" });
+    source.parentElement.insertBefore(output, source.nextSibling);
+
+    Array.prototype.forEach.call(output.querySelectorAll("x-ruby"), function (element) {
+      element.setInlineLayout("ruby");
+    });
+  });
+
+  layoutHappened();
+}
+
+function replaceTagName(element, map) {
+  Array.prototype.forEach.call(element.children, function (child) {
+    replaceTagName(child, map);
+  });
+
+  var tagName = element.tagName;
+  var replacedTagName = map[tagName.toLowerCase()];
+  if (!replacedTagName)
+    return element;
+  var replacedElement = document.createElement(replacedTagName);
+  Array.prototype.forEach.call(Array.prototype.slice.call(element.childNodes), function (child) {
+    replacedElement.appendChild(child);
+  });
+
+  var parent = element.parentNode;
+  if (parent)
+    parent.replaceChild(replacedElement, element);
+  return replacedElement;
+}
+</script>
