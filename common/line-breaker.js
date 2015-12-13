@@ -76,6 +76,10 @@
       return breakBefore;
     }
 
+    get isAtWordSeparator() {
+      return this._lastLineBreakValue == ULineBreak.SPACE;
+    }
+
     canBreakBefore(ch) {
       return this.breakBefore(ch) != null;
     }

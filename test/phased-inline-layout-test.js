@@ -44,4 +44,29 @@ describe("PhasedInlineLayout", function () {
       });
     });
   });
+
+  describe("flow", function () {
+    layout.wordSpace = 10;
+    [
+      [[{ width: 100 }],
+        [[{ width: 100, left: 0, top: 0}]]],
+      [[{ width: 100, breakAfter: "space" }, { width: 300, breakAfter: "space" }, { width: 100, breakAfter: "space"}],
+        [
+          [{ width: 100, left: 0, top: 0, breakAfter: "space" }, { width: 300, left: 110, top: 0, breakAfter: "space" }],
+          [{ width: 100, left: 0, top: 0, breakAfter: "space" }]]],
+      [[{ width: 100, breakAfter: "space" }, { width: 300 }, { width: 100, breakAfter: "space"}],
+        [
+          [{ width: 100, left: 0, top: 0, breakAfter: "space" }],
+          [{ width: 300, left: 0, top: 0 }, { width: 100, left: 300, top: 0, breakAfter: "space" }]]],
+      [[{ width: 100, breakAfter: "nospace" }, { width: 300, breakAfter: "nospace" }, { width: 150, breakAfter: "nospace"}],
+        [
+          [{ width: 100, left: 0, top: 0, breakAfter: "nospace" }, { width: 300, left: 100, top: 0, breakAfter: "nospace" }],
+          [{ width: 150, left: 0, top: 0, breakAfter: "nospace" }]]],
+    ].forEach(function (arg) {
+      it("", function () {
+        var actual = layout.flow(arg[0], 500);
+        assert.deepEqual(actual, arg[1]);
+      });
+    });
+  });
 });
