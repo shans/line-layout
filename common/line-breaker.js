@@ -47,18 +47,18 @@
     return ULineBreak.ALPHABETIC;
   }
 
-  function canBreakBetweenLineBreakValues(value1, value2) {
+  function breakBetweenLineBreakValues(value1, value2) {
     switch (value1) {
       case ULineBreak.BEGINNING_OF_LINE:
-        return false;
+        return null;
       case ULineBreak.SPACE:
-        return value2 != ULineBreak.SPACE;
+        return value2 != ULineBreak.SPACE ? "space" : null;
       case ULineBreak.OPEN_PUNCTUATION:
-        return false;
+        return null;
       case ULineBreak.IDEOGRAPHIC:
-        return value2 != ULineBreak.CLOSE_PUNCTUATION;
+        return value2 != ULineBreak.CLOSE_PUNCTUATION ? "nospace" : null;
       default:
-        return value2 == ULineBreak.IDEOGRAPHIC;
+        return value2 == ULineBreak.IDEOGRAPHIC ? "nospace" : null;
     }
   }
 
@@ -69,11 +69,15 @@
 
     // Add `ch` to the current line breaking context, and returns whether a
     // break opportunity exists before `ch`.
-    canBreakBefore(ch) {
+    breakBefore(ch) {
       var value = lineBreakValue(ch.charCodeAt(0));
-      var hasBreakOpportunityBefore = canBreakBetweenLineBreakValues(this._lastLineBreakValue, value);
+      var breakBefore = breakBetweenLineBreakValues(this._lastLineBreakValue, value);
       this._lastLineBreakValue = value;
-      return hasBreakOpportunityBefore;
+      return breakBefore;
+    }
+
+    canBreakBefore(ch) {
+      return this.breakBefore(ch) != null;
     }
 
     // Returns whether a break opportunity exists between `ch1` and `ch2`. This
@@ -81,7 +85,7 @@
     // more context than two characters that relying on this function too much
     // may make the architecture harder to implement.
     static canBreakBetween(ch1, ch2) {
-      return canBreakBetweenLineBreakValues(lineBreakValue(ch1.charCodeAt(0)), lineBreakValue(ch2.charCodeAt(0)));
+      return breakBetweenLineBreakValues(lineBreakValue(ch1.charCodeAt(0)), lineBreakValue(ch2.charCodeAt(0))) != null;
     }
   }
 })(this);
