@@ -1,6 +1,6 @@
 'use strict';
 var assert = require("assert");
-var target = require("../line-breaker.js");
+var LineBreaker = require("../common/line-breaker.js").LineBreaker;
 
 describe("LineBreaker", function () {
 
@@ -46,11 +46,10 @@ describe("LineBreaker", function () {
   }
 
   describe("canBreakBetween", function () {
-    testBetweenTwoCharacters(target.LineBreaker.canBreakBetween);
+    testBetweenTwoCharacters(LineBreaker.canBreakBetween);
   });
 
   describe("canBreakBefore", function () {
-    var LineBreaker = target.LineBreaker;
     testBetweenTwoCharacters((ch1, ch2) => {
       var lineBreaker = new LineBreaker;
       lineBreaker.canBreakBefore(ch1);
