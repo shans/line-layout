@@ -29,7 +29,7 @@
       for (var line of lines) {
         var lineElement = document.createElement("div");
         lineElement.style.position = "relative";
-        lineElement.style.height = "20px"; // TODO: line-height NYI
+        lineElement.style.height = "29px"; // TODO: line-height NYI
         for (var s of line) {
           lineElement.appendChild(segmentToElement(s));
         }

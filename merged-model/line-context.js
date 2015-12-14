@@ -22,6 +22,12 @@
       return true;
     }
 
+    addOutOfFlow(segment, x, y) {
+      this.segments.push(segment);
+      segment.left = x;
+      segment.top = y;
+    }
+
     commitAll() {
       var segments = this.segments;
       this.segments = [];
