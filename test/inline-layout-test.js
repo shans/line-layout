@@ -1,39 +1,10 @@
 'use strict';
 var assert = require("assert");
 var LineBreaker = require("../merged-model/line-breaker.js").LineBreaker;
-var LineContext = require("../merged-model/inline-layout.js").LineContext;
+var LineContext = require("../merged-model/line-context.js").LineContext;
 var InlineLayout = require("../merged-model/inline-layout.js").InlineLayout;
 
-describe("LineContext", function () {
-  it("All breakable", function () {
-    var context = new LineContext(500);
-    assert.equal(context.add({ width: 100, breakAfter: "nospace" }), true);
-    assert.equal(context.add({ width: 300, breakAfter: "nospace" }), true);
-    assert.equal(context.add({ width: 150, breakAfter: "nospace" }), false);
-    assert.deepEqual(context.commit(), [
-      { width: 100, breakAfter: "nospace", left: 0, top: 0 },
-      { width: 300, breakAfter: "nospace", left: 100, top: 0 },
-    ]);
-    assert.deepEqual(context.commit(), []);
-    assert.deepEqual(context.commitAll(), []);
-  });
-
-  it("Non-breakable", function () {
-    var context = new LineContext(500);
-    assert.equal(context.add({ width: 100, breakAfter: "nospace" }), true);
-    assert.equal(context.add({ width: 300, breakAfter: null }), true);
-    assert.equal(context.add({ width: 150, breakAfter: "nospace" }), false);
-    assert.deepEqual(context.commit(), [
-      { width: 100, breakAfter: "nospace", left: 0, top: 0 },
-    ]);
-    assert.deepEqual(context.commit(), []);
-    assert.deepEqual(context.commitAll(), [
-      { width: 300, breakAfter: null, left: 0, top: 0 },
-    ]);
-  });
-});
-
-describe("PhasedInlineLayout", function () {
+describe("MergedInlineLayout", function () {
   var layout = new InlineLayout(new LineBreaker);
   describe("segmentString", function () {
     [
@@ -93,7 +64,7 @@ describe("PhasedInlineLayout", function () {
           [{ width: 100, left: 0, top: 0, breakAfter: "nospace" }, { width: 300, left: 100, top: 0, breakAfter: "nospace" }],
           [{ width: 150, left: 0, top: 0, breakAfter: "nospace" }]]],
     ].forEach(function (arg) {
-      it("", function () {
+      it(arg[0].map(a => a.width + "/" + a.breakAfter), function () {
         var context = new LineContext(500);
         var actual = layout.flow(arg[0], context);
         var lastLine = context.commitAll();
