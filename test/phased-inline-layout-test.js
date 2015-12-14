@@ -1,8 +1,8 @@
 'use strict';
 var assert = require("assert");
-var LineBreaker = require("../common/line-breaker.js").LineBreaker;
-var LineContext = require("../segment-measure-flow-adjust/inline-layout.js").LineContext;
-var InlineLayout = require("../segment-measure-flow-adjust/inline-layout.js").InlineLayout;
+var LineBreaker = require("../merged-model/line-breaker.js").LineBreaker;
+var LineContext = require("../merged-model/inline-layout.js").LineContext;
+var InlineLayout = require("../merged-model/inline-layout.js").InlineLayout;
 
 describe("LineContext", function () {
   it("All breakable", function () {

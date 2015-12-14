@@ -1,6 +1,6 @@
 'use strict';
 var assert = require("assert");
-var LineBreaker = require("../common/line-breaker.js").LineBreaker;
+var LineBreaker = require("../merged-model/line-breaker.js").LineBreaker;
 
 describe("LineBreaker", function () {
 
