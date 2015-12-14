@@ -77,7 +77,6 @@ function run() {
 }
 
 function runPhaseModel() {
-  console.log("runPhaseModel");
   var layout = new InlineLayout;
   Array.prototype.forEach.call(document.querySelectorAll(".source"), function (source) {
     ensureTestWrapper(source);
@@ -92,7 +91,6 @@ function runPhaseModel() {
 }
 
 function runLineModel() {
-  console.log("runLineModel");
   Array.prototype.forEach.call(document.querySelectorAll(".output"), function (output) {
     output.parentNode.removeChild(output);
   });

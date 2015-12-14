@@ -1,7 +1,59 @@
 'use strict';
 
 (function (exports) {
-  exports.InlineLayout = class InlineLayout {
+  var tagToInlineLayout = {};
+
+  class LineContext {
+    constructor(maxWidth) {
+      this.segments = [];
+      this.x = 0;
+      this.maxWidth = maxWidth;
+      this.lastBreakAfterIndex = -1;
+    }
+
+    add(segment) {
+      // TODO: NYI: overflow not supported
+      if (this.x + segment.width > this.maxWidth)
+        return false;
+
+      if (segment.breakAfter)
+        this.lastBreakAfterIndex = this.segments.length;
+      this.segments.push(segment);
+      this.advance(segment);
+      return true;
+    }
+
+    commitAll() {
+      var segments = this.segments;
+      this.segments = [];
+      this.x = 0;
+      this.lastBreakAfterIndex = -1;
+      return segments;
+    }
+
+    commit() {
+      if (this.lastBreakAfterIndex == this.segments.length - 1)
+        return this.commitAll();
+
+      var segments = this.segments.splice(0, this.lastBreakAfterIndex + 1);
+      this.x = 0;
+      this.lastBreakAfterIndex = -1;
+      for (var segment of this.segments)
+        this.advance(segment);
+      return segments;
+    }
+
+    advance(segment) {
+      segment.left = this.x;
+      segment.top = 0;
+      this.x += segment.width;
+      if (segment.breakAfter === "space")
+        this.x += 10;//this.wordSpace; // TODO: NYI
+    }
+  }
+  exports.LineContext = LineContext;
+
+  class InlineLayout {
     constructor(lineBreaker) {
       this.lineBreaker = lineBreaker || new LineBreaker;
     }
@@ -9,17 +61,19 @@
     layout(source, target) {
       var content = source.childNodes;
       var segments = this.segment(content);
+
       this.measure(segments);
 
       var targetStyle = getComputedStyle(target);
       var maxWidth = parseFloat(targetStyle.width);
-      var lines = this.flow(segments, maxWidth);
+      var context = new LineContext(maxWidth);
+      var lines = this.flow(segments, context);
+      var lastLine = context.commitAll();
+      if (lastLine.length)
+        lines.push(lastLine);
+
       this.adjust(segments);
 
-      InlineLayout.linesToElements(lines, target);
-    }
-
-    static linesToElements(lines, target) {
       target.innerHTML = '';
       for (var line of lines) {
         var lineElement = document.createElement("div");
@@ -32,19 +86,35 @@
       }
     }
 
+    static register(tagName, layout) {
+      tagToInlineLayout[tagName] = layout;
+    }
+
     segment(nodes, segments) {
       segments = segments || [];
       for (var i = 0; i < nodes.length; i++) {
         var node = nodes[i];
         switch (node.nodeType) {
+        case Node.ELEMENT_NODE:
+          this.segmentElement(node, segments);
+          break;
         case Node.TEXT_NODE:
           this.segmentString(node.nodeValue, segments);
           break;
-        case Node.ELEMENT_NODE:
-          this.segment(node.childNodes, segments);
-          break;
         }
       }
+      return segments;
+    }
+
+    segmentElement(element, segments) {
+      var layout = tagToInlineLayout[element.tagName.toLowerCase()];
+      if (!layout)
+        return this.segment(element.childNodes, segments);
+      layout.lineBreaker = this.lineBreaker;
+      segments.push({
+        layout: layout,
+        segments: layout.segment(element.childNodes),
+      });
       return segments;
     }
 
@@ -107,6 +177,10 @@
 
     measure(segments) {
       for (var s of segments) {
+        if (s.layout) {
+          s.layout.measure(s.segments);
+          continue;
+        }
         var rects = measureText(s.text, s.fontSize);
         console.assert(rects.length == 1);
         s.width = rects[0].width;
@@ -114,39 +188,24 @@
       }
     }
 
-    flow(segments, maxWidth) {
-      var lines = [];
-      var x = 0;
-      var lineStartIndex = 0;
-      var lastBreakAfterIndex = -1;
+    flow(segments, context, lines) {
+      lines = lines || [];
       for (var i = 0; i < segments.length; i++) {
         var s = segments[i];
-        if (x + s.width > maxWidth) {
-          if (lastBreakAfterIndex < 0) {
-            // TODO: NYI: overflow
-            lastBreakAfterIndex = i;
-          }
-          lines.push(segments.slice(lineStartIndex, lastBreakAfterIndex + 1));
-          i = lastBreakAfterIndex;
-          lineStartIndex = i + 1;
-          x = 0;
+        if (s.layout) {
+          s.layout.flow(s.segments, context, lines);
           continue;
         }
-        if (s.breakAfter)
-          lastBreakAfterIndex = i;
-
-        s.left = x;
-        s.top = 0;
-        x += s.width;
-        if (s.breakAfter === "space")
-          x += 12;//this.wordSpace; // TODO: NYI
+        if (context.add(s))
+          continue;
+        lines.push(context.commit());
+        context.add(s);
       }
-      if (i > lineStartIndex)
-        lines.push(segments.slice(lineStartIndex, i));
       return lines;
     }
 
     adjust(segments) {
     }
   }
+  exports.InlineLayout = InlineLayout;
 })(this);
