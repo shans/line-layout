@@ -6,11 +6,38 @@
       this.lineBreaker = lineBreaker || new LineBreaker;
     }
 
+    layout(source, target) {
+      var content = source.childNodes;
+      var segments = this.segment(content);
+      this.measure(segments);
+
+      var targetStyle = getComputedStyle(target);
+      var maxWidth = parseFloat(targetStyle.width);
+      var lines = this.flow(segments, maxWidth);
+      this.adjust(segments);
+
+      InlineLayout.linesToElements(lines, target);
+    }
+
+    static linesToElements(lines, target) {
+      target.innerHTML = '';
+      for (var line of lines) {
+        var lineElement = document.createElement("div");
+        lineElement.style.position = "relative";
+        lineElement.style.height = "20px"; // TODO: line-height NYI
+        for (var s of line) {
+          lineElement.appendChild(segmentToElement(s));
+        }
+        target.appendChild(lineElement);
+      }
+    }
+
     segment(nodes, segments) {
       segments = segments || [];
-      for (var node of nodes) {
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
         switch (node.nodeType) {
-        case Node.TEXT:
+        case Node.TEXT_NODE:
           this.segmentString(node.nodeValue, segments);
           break;
         case Node.ELEMENT_NODE:
@@ -112,7 +139,7 @@
         s.top = 0;
         x += s.width;
         if (s.breakAfter === "space")
-          x += this.wordSpace;
+          x += 12;//this.wordSpace; // TODO: NYI
       }
       if (i > lineStartIndex)
         lines.push(segments.slice(lineStartIndex, i));
