@@ -15,11 +15,11 @@ Further improvements are:
 1. Similar to the line context mentioned above,
 break opportunity analysis needs to be separated from custom layout objects
 so that it can analyze across multiple different custom layouts.
+1. Nested and multiple custom layouts is supported.
 
 ## Open Issues
 
-* Is it better to pass `element` rather than `element.childNodes1` to `segment`?
-* The `segment` phase needs to support nested custom layouts.
+* Is it better to pass `element` rather than `element.childNodes` to `segment`?
 * Do out-of-flow items need to be handled differently?
 
 [line-model]: ../line-model/

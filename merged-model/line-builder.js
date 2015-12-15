@@ -1,8 +1,8 @@
 'use strict';
 
 (function (exports) {
-  exports.LineContext =
-  class LineContext {
+  exports.LineBuilder =
+  class LineBuilder {
     constructor(maxWidth) {
       this.segments = [];
       this.x = 0;

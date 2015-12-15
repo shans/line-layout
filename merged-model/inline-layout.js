@@ -17,7 +17,7 @@
 
       var targetStyle = getComputedStyle(target);
       var maxWidth = parseFloat(targetStyle.width);
-      var context = new LineContext(maxWidth);
+      var context = new LineBuilder(maxWidth);
       var lines = this.flow(segments, context);
       var lastLine = context.commitAll();
       if (lastLine.length)

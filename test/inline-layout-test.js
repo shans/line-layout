@@ -1,7 +1,7 @@
 'use strict';
 var assert = require("assert");
 var LineBreaker = require("../merged-model/line-breaker.js").LineBreaker;
-var LineContext = require("../merged-model/line-context.js").LineContext;
+var LineBuilder = require("../merged-model/line-builder.js").LineBuilder;
 var InlineLayout = require("../merged-model/inline-layout.js").InlineLayout;
 
 describe("MergedInlineLayout", function () {
@@ -65,7 +65,7 @@ describe("MergedInlineLayout", function () {
           [{ width: 150, left: 0, top: 0, breakAfter: "nospace" }]]],
     ].forEach(function (arg) {
       it(arg[0].map(a => a.width + "/" + a.breakAfter), function () {
-        var context = new LineContext(500);
+        var context = new LineBuilder(500);
         var actual = layout.flow(arg[0], context);
         var lastLine = context.commitAll();
         if (lastLine.length)

@@ -1,10 +1,10 @@
 'use strict';
 var assert = require("assert");
-var LineContext = require("../merged-model/line-context.js").LineContext;
+var LineBuilder = require("../merged-model/line-builder.js").LineBuilder;
 
-describe("LineContext", function () {
+describe("LineBuilder", function () {
   it("All breakable", function () {
-    var context = new LineContext(500);
+    var context = new LineBuilder(500);
     assert.equal(context.add({ width: 100, breakAfter: "nospace" }), true);
     assert.equal(context.add({ width: 300, breakAfter: "nospace" }), true);
     assert.equal(context.add({ width: 150, breakAfter: "nospace" }), false);
@@ -17,7 +17,7 @@ describe("LineContext", function () {
   });
 
   it("Non-breakable", function () {
-    var context = new LineContext(500);
+    var context = new LineBuilder(500);
     assert.equal(context.add({ width: 100, breakAfter: "nospace" }), true);
     assert.equal(context.add({ width: 300, breakAfter: null }), true);
     assert.equal(context.add({ width: 150, breakAfter: "nospace" }), false);
