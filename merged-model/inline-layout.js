@@ -10,8 +10,7 @@
     }
 
     layout(source, target) {
-      var content = source.childNodes;
-      var segments = this.segment(content);
+      var segments = this.segment(source);
 
       this.measure(segments);
 
@@ -41,31 +40,33 @@
       tagToInlineLayout[tagName] = layout;
     }
 
-    segment(nodes, segments) {
+    segment(node, segments) {
       segments = segments || [];
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        switch (node.nodeType) {
-        case Node.ELEMENT_NODE:
-          this.segmentElement(node, segments);
-          break;
-        case Node.TEXT_NODE:
-          this.segmentString(node.nodeValue, segments);
-          break;
-        }
+      switch (node.nodeType) {
+      case Node.ELEMENT_NODE:
+        this.segmentElement(node, segments);
+        break;
+      case Node.TEXT_NODE:
+        this.segmentString(node.nodeValue, segments);
+        break;
       }
       return segments;
     }
 
     segmentElement(element, segments) {
       var layout = tagToInlineLayout[element.tagName.toLowerCase()];
-      if (!layout)
-        return this.segment(element.childNodes, segments);
-      layout.lineBreaker = this.lineBreaker;
-      segments.push({
-        layout: layout,
-        segments: layout.segment(element.childNodes),
-      });
+      if (layout) {
+        layout.lineBreaker = this.lineBreaker;
+        layout.parentLayout = this;
+        segments.push({
+          layout: layout,
+          segments: layout.segment(element),
+        });
+      } else {
+        var childNodes = element.childNodes;
+        for (var i = 0; i < childNodes.length; i++)
+          this.segment(childNodes[i], segments);
+      }
       return segments;
     }
 

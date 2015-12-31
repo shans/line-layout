@@ -43,22 +43,34 @@
       }
       return pairs;
     }
+
+    baseSegments(layout) {
+      var segments = [];
+      for (var baseNode of this.baseNodes)
+        layout.segment(baseNode, segments);
+      return segments;
+    }
+
+    annotationSegments(layout) {
+      // TODO: should use a separate LineBreaker
+      return layout.segment(this.annotationNode);
+    }
   }
   class RubyInlineLayout extends InlineLayout {
-    segment(nodes, segments) {
-      // TODO: This recursive call isn't ideal, needs review.
-      if (nodes[0].parentElement.tagName.toLowerCase() != "ruby")
-        return super.segment(nodes, segments);
+    segment(element, segments) {
+      console.assert(element.tagName.toLowerCase() === "ruby");
       segments = segments || [];
+      var nodes = element.childNodes;
       var pairs = RubyPair.fromChildNodes(nodes);
       for (var pair of pairs) {
-        var start = segments.length;
-        super.segment(pair.baseNodes, segments);
-        var end = segments.length;
-
-        var annotationSegments = super.segment([pair.annotationNode]);
+        var baseSegments = pair.baseSegments(this.parentLayout);
+        var annotationSegments = pair.annotationSegments(this.parentLayout);
         for (var annotationSegment of annotationSegments)
           annotationSegment.fontSize = 8;
+
+        var start = segments.length;
+        Array.prototype.push.apply(segments, baseSegments);
+        var end = segments.length;
         segments[start].annotation = {
           baseEnd: end,
           segments: annotationSegments,
