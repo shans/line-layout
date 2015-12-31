@@ -23,6 +23,9 @@
     }
 
     addOutOfFlow(segment, x, y) {
+      // Associate out-of-flow segments with the last in-flow segment.
+      if (this.lastBreakAfterIndex == this.segments.length - 1)
+        this.lastBreakAfterIndex++;
       this.segments.push(segment);
       segment.left = x;
       segment.top = y;

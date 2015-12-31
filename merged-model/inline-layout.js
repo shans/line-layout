@@ -74,14 +74,17 @@
       segments = segments || [];
       if (!str)
         return segments;
+      var lineBreaker = this.lineBreaker;
       for (var i = 0; i < str.length; i++) {
-        var breakType = this.lineBreaker.breakBefore(str[i]);
+        var breakType = lineBreaker.breakBefore(str[i]);
         if (breakType) {
-          if (segments.length > 0)
-            segments[segments.length - 1].breakAfter = breakType;
+          if (lineBreaker.lastSegment)
+            lineBreaker.lastSegment.breakAfter = breakType;
+          else
+            console.warn("Break needed without lastSegment");
           break;
         }
-        if (!this.lineBreaker.isAtWordSeparator)
+        if (!lineBreaker.isAtWordSeparator)
           break;
       }
       if (i >= str.length)
@@ -89,9 +92,9 @@
 
       var lastSpacePosition = -1;
       for (var begin = i++; i < str.length; i++) {
-        var breakType = this.lineBreaker.breakBefore(str[i]);
+        var breakType = lineBreaker.breakBefore(str[i]);
         if (!breakType) {
-          if (!this.lineBreaker.isAtWordSeparator)
+          if (!lineBreaker.isAtWordSeparator)
             lastSpacePosition = -1;
           else if (lastSpacePosition < 0)
             lastSpacePosition = i;
@@ -99,16 +102,10 @@
         }
         if (lastSpacePosition > 0) {
           console.assert(lastSpacePosition > begin);
-          segments.push({
-            text: str.substring(begin, lastSpacePosition),
-            breakAfter: breakType,
-          });
+          this.addTextSegment(str.substring(begin, lastSpacePosition), breakType, segments);
         } else {
           console.assert(i > begin);
-          segments.push({
-            text: str.substring(begin, i),
-            breakAfter: breakType,
-          });
+          this.addTextSegment(str.substring(begin, i), breakType, segments);
         }
         begin = i;
         lastSpacePosition = -1;
@@ -119,12 +116,18 @@
           i = lastSpacePosition;
           console.assert(i > begin);
         }
-        segments.push({
-          text: str.substring(begin, i),
-          breakAfter: null,
-        });
+        this.addTextSegment(str.substring(begin, i), null, segments);
       }
       return segments;
+    }
+
+    addTextSegment(text, breakAfter, segments) {
+      var segment = {
+        text: text,
+        breakAfter: breakAfter,
+      };
+      segments.push(segment);
+      this.lineBreaker.lastSegment = segment;
     }
 
     measure(segments) {
