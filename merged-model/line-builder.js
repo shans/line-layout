@@ -10,14 +10,16 @@
       this.lastBreakAfterIndex = -1;
     }
 
-    add(segment) {
+    add(segment, x) {
       // TODO: NYI: overflow not supported
-      if (this.x + segment.width > this.maxWidth)
+      x = x || 0;
+      if (this.x + x + segment.width > this.maxWidth)
         return false;
 
       if (segment.breakAfter)
         this.lastBreakAfterIndex = this.segments.length;
       this.segments.push(segment);
+      this.x += x;
       this.advance(segment);
       return true;
     }

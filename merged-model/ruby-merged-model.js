@@ -61,6 +61,27 @@
     }
   }
 
+  class RubyData {
+    constructor(baseCount, annotationSegments) {
+      console.assert(baseCount > 0);
+      console.assert(annotationSegments.length > 0);
+      this.baseCount = baseCount;
+      this.annotationSegments = annotationSegments;
+    }
+
+    static getList(segments) {
+      var list = [];
+      for (var baseStartIndex = 0; baseStartIndex < segments.length; ) {
+        var rubyData = segments[baseStartIndex].rubyData;
+        console.assert(rubyData, "Non-ruby segments passed");
+        rubyData.baseSegments = segments.slice(baseStartIndex, baseStartIndex + rubyData.baseCount);
+        list.push(rubyData);
+        baseStartIndex += rubyData.baseCount;
+      }
+      return list;
+    }
+  }
+
   class RubyInlineLayout extends InlineLayout {
     segment(element, segments) {
       console.assert(element.tagName.toLowerCase() === "ruby");
@@ -74,43 +95,50 @@
           annotationSegment.fontSize = 8;
 
         // Store Ruby annotation segments and related information
-        // as a property of the base segment.
+        // as a property of the first base segment.
         var start = segments.length;
         Array.prototype.push.apply(segments, baseSegments);
         var end = segments.length;
-        segments[start].annotation = {
-          baseEnd: end,
-          segments: annotationSegments,
-        };
+        segments[start].rubyData = new RubyData(end - start, annotationSegments);
       }
       return segments;
     }
 
     measure(segments) {
       super.measure(segments);
-      for (var segment of segments) {
-        if (segment.annotation)
-          super.measure(segment.annotation.segments);
+      for (var rubyData of RubyData.getList(segments)) {
+        var baseSegments = rubyData.baseSegments;
+        var annotationSegments = rubyData.annotationSegments;
+        super.measure(annotationSegments);
+        // Total width and overhang are done in flow().
+        // That means the actual width can change during flow().
       }
     }
 
     flow(segments, context, lines) {
       lines = lines || [];
-      for (var i = 0; i < segments.length; ) {
-        var segment = segments[i];
-        if (!segment.annotation) {
-          console.assert(false, "Non-ruby segments passed to RubyInlineLayout.flow");
-          super.flow([segment], context, lines);
-          i++;
-          continue;
-        }
+      for (var rubyData of RubyData.getList(segments)) {
+        var baseSegments = rubyData.baseSegments;
+        var annotationSegments = rubyData.annotationSegments;
+        var baseWidth = totalWidth(baseSegments);
+        var annotationWidth = totalWidth(annotationSegments);
+        var overhang = annotationWidth - baseWidth;
 
-        var endIndex = segment.annotation.baseEnd;
-        var baseSegments = segments.slice(i, endIndex);
-        var annotationSegments = segment.annotation.segments;
         var startSegment = baseSegments[0];
-        for (var base of baseSegments) {
-          if (context.add(base))
+        for (var i = 0; i < baseSegments.length; i++) {
+          var base = baseSegments[i];
+          var x = 0;
+          if (i == 0) {
+            if (overhang > 0) {
+              x = overhang / 2;
+              base.width += overhang / 2;
+            }
+          } else if (i == baseSegments.length - 1) {
+            if (overhang > 0)
+              base.width += overhang / 2;
+          }
+
+          if (context.add(base, x))
             continue;
 
           // Break within a ruby segment.
@@ -122,19 +150,25 @@
           // Move to the next line.
           lines.push(context.commit());
           startSegment = base;
-          context.add(base);
+          context.add(base, x);
         }
 
         var x = startSegment.left;
+        x -= overhang / 2;
         for (var annotationSegment of annotationSegments) {
           context.addOutOfFlow(annotationSegment, x, -6);
           x += annotationSegment.width;
         }
-
-        i = endIndex;
       }
       return lines;
     }
+  }
+
+  function totalWidth(segments) {
+    var width = 0;
+    for (var s of segments)
+      width += s.width;
+    return width;
   }
 
   InlineLayout.register("ruby", new RubyInlineLayout);

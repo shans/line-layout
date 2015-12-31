@@ -49,12 +49,18 @@ These classes live in
 A separate line breaker also helps to handle out-of-flow items
 that require independent line breaking context from the main flow.
 
-## Additions to `LineBuilder`
+## Out-of-flow Segments
 
-Following additions are made to the `LineBuilder`:
-1. `addOutOfFlow` that does not advance the current width to add ruby annotations to the line.
+Ruby annotations are out-of-flow.
+To handle this, `addOutOfFlow()` is added to `LineBuilder`.
+This function does not advance the current width.
 
-## Open Issues
+Open questions:
+* Should out-of-flow segment be associated with an in-flow segment
+* Should custom layout create a separate LineBuilder for out-of-flow segments, create lines, and
+add them to the in-flow lines?
+
+## Other Open Issues
 
 * Experiment overhang more accurately,
   it might affect the API design.
@@ -65,8 +71,9 @@ Following additions are made to the `LineBuilder`:
   This might also affect the API design.
 * Should the `flow` phase return a list of lines,
   and it should be the input to the `adjust` phase?
-* Should out-of-flow segment be associated with an in-flow segment
   rather than a line?
+  The complexity is when next segment can pull in
+  uncommitted segments to the next line.
 
 [line-model]: ../line-model/
 [phase-model]: ../segment-measure-flow-adjust/
