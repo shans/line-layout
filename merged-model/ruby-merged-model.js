@@ -52,10 +52,15 @@
     }
 
     annotationSegments(layout) {
-      // TODO: should use a separate LineBreaker
-      return layout.segment(this.annotationNode);
+      // Annotations have its own line breaking context.
+      var savedLineBreaker = layout.lineBreaker;
+      layout.lineBreaker = new LineBreaker;
+      var segments = layout.segment(this.annotationNode);
+      layout.lineBreaker = savedLineBreaker;
+      return segments;
     }
   }
+
   class RubyInlineLayout extends InlineLayout {
     segment(element, segments) {
       console.assert(element.tagName.toLowerCase() === "ruby");

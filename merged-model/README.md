@@ -43,6 +43,9 @@ already gives a good model.
 This model takes the line context
 and add a line breaker to the [phase-model][].
 
+A separate line breaker also helps to handle out-of-flow items
+that require independent line breaking context.
+
 ## Open Issues
 
 * Is it better to pass `element` rather than `element.childNodes` to `segment`?
