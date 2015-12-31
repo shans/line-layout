@@ -73,6 +73,8 @@
         for (var annotationSegment of annotationSegments)
           annotationSegment.fontSize = 8;
 
+        // Store Ruby annotation segments and related information
+        // as a property of the base segment.
         var start = segments.length;
         Array.prototype.push.apply(segments, baseSegments);
         var end = segments.length;
@@ -94,20 +96,44 @@
 
     flow(segments, context, lines) {
       lines = lines || [];
-      for (var i = 0; i < segments.length; i++) {
+      for (var i = 0; i < segments.length; ) {
         var segment = segments[i];
         if (!segment.annotation) {
+          console.assert(false, "Non-ruby segments passed to RubyInlineLayout.flow");
           super.flow([segment], context, lines);
+          i++;
           continue;
         }
-        super.flow(segments.slice(i, segment.annotation.baseEnd), context, lines);
-        var x = segment.left;
-        for (var annotationSegment of segment.annotation.segments) {
+
+        var endIndex = segment.annotation.baseEnd;
+        var baseSegments = segments.slice(i, endIndex);
+        var annotationSegments = segment.annotation.segments;
+        var startSegment = baseSegments[0];
+        for (var base of baseSegments) {
+          if (context.add(base))
+            continue;
+
+          // Break within a ruby segment.
+          if (base !== startSegment) {
+            // TODO: flowing some annotation is NYI.
+            console.log("Break within a segment before " + base.text);
+          }
+
+          // Move to the next line.
+          lines.push(context.commit());
+          startSegment = base;
+          context.add(base);
+        }
+
+        var x = startSegment.left;
+        for (var annotationSegment of annotationSegments) {
           context.addOutOfFlow(annotationSegment, x, -6);
           x += annotationSegment.width;
         }
-        i = segment.annotation.baseEnd - 1;
+
+        i = endIndex;
       }
+      return lines;
     }
   }
 

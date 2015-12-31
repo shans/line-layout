@@ -40,22 +40,33 @@ from custom layout instances.
 
 For the latter, the line context in the [line-model][]
 already gives a good model.
-This model takes the line context
-and add a line breaker to the [phase-model][].
+This model steals the line box context as `LineBuilder` class,
+and add `LineBreaker` class to the [phase-model][].
+These classes live in
+[line-breaker.js](line-breaker.js) and
+[line-builder.js](line-builder.js).
 
 A separate line breaker also helps to handle out-of-flow items
-that require independent line breaking context.
+that require independent line breaking context from the main flow.
+
+## Additions to `LineBuilder`
+
+Following additions are made to the `LineBuilder`:
+1. `addOutOfFlow` that does not advance the current width to add ruby annotations to the line.
 
 ## Open Issues
 
-* Is it better to pass `element` rather than `element.childNodes` to `segment`?
-* Better to experiment overhang more accurately,
-  it might affect the design.
+* Experiment overhang more accurately,
+  it might affect the API design.
+  Overhang requires changing width depends on
+  whether actual line break occurred or not.
 * How to handle breaks within a ruby element needs further experiments.
   The current prototype is incomplete.
-* Do out-of-flow items need to be handled differently?
+  This might also affect the API design.
 * Should the `flow` phase return a list of lines,
   and it should be the input to the `adjust` phase?
+* Should out-of-flow segment be associated with an in-flow segment
+  rather than a line?
 
 [line-model]: ../line-model/
 [phase-model]: ../segment-measure-flow-adjust/
