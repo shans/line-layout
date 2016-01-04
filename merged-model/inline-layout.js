@@ -9,6 +9,12 @@
       this.lineBreaker = lineBreaker || new LineBreaker;
     }
 
+    static get default() {
+      if (!InlineLayout._default)
+        InlineLayout._default = new InlineLayout;
+      return InlineLayout._default;
+    }
+
     layout(source, target) {
       var segments = this.segment(source);
 
@@ -29,9 +35,8 @@
         var lineElement = document.createElement("div");
         lineElement.style.position = "relative";
         lineElement.style.height = "29px"; // TODO: line-height NYI
-        for (var s of line) {
+        for (var s of line)
           lineElement.appendChild(segmentToElement(s));
-        }
         target.appendChild(lineElement);
       }
     }
@@ -44,20 +49,19 @@
       segments = segments || [];
       switch (node.nodeType) {
       case Node.ELEMENT_NODE:
-        this.segmentElement(node, segments);
+        this._segmentElement(node, segments);
         break;
       case Node.TEXT_NODE:
-        this.segmentString(node.nodeValue, segments);
+        this._segmentString(node.nodeValue, segments);
         break;
       }
       return segments;
     }
 
-    segmentElement(element, segments) {
+    _segmentElement(element, segments) {
       var layout = tagToInlineLayout[element.tagName.toLowerCase()];
       if (layout) {
         layout.lineBreaker = this.lineBreaker;
-        layout.parentLayout = this;
         segments.push({
           layout: layout,
           segments: layout.segment(element),
@@ -70,18 +74,18 @@
       return segments;
     }
 
-    segmentString(str, segments) {
-      segments = segments || [];
+    _segmentString(str, segments) {
       if (!str)
         return segments;
+
+      // If break before the first character,
+      // add the break opportunity to the last segment.
       var lineBreaker = this.lineBreaker;
       for (var i = 0; i < str.length; i++) {
         var breakType = lineBreaker.breakBefore(str[i]);
         if (breakType) {
-          if (lineBreaker.lastSegment)
-            lineBreaker.lastSegment.breakAfter = breakType;
-          else
-            console.warn("Break needed without lastSegment");
+          console.assert(lineBreaker.lastSegment, "Break needed without lastSegment");
+          lineBreaker.lastSegment.breakAfter = breakType;
           break;
         }
         if (!lineBreaker.isAtWordSeparator)
@@ -100,28 +104,23 @@
             lastSpacePosition = i;
           continue;
         }
-        if (lastSpacePosition > 0) {
-          console.assert(lastSpacePosition > begin);
-          this.addTextSegment(str.substring(begin, lastSpacePosition), breakType, segments);
-        } else {
-          console.assert(i > begin);
-          this.addTextSegment(str.substring(begin, i), breakType, segments);
-        }
+
+        var end = lastSpacePosition > 0 ? lastSpacePosition : i;
+        console.assert(end > begin);
+        this._addTextSegment(str.substring(begin, end), breakType, segments);
         begin = i;
         lastSpacePosition = -1;
       }
 
       if (i > begin) {
-        if (lastSpacePosition > 0) {
-          i = lastSpacePosition;
-          console.assert(i > begin);
-        }
-        this.addTextSegment(str.substring(begin, i), null, segments);
+        var end = lastSpacePosition > 0 ? lastSpacePosition : i;
+        console.assert(end > begin);
+        this._addTextSegment(str.substring(begin, end), null, segments);
       }
       return segments;
     }
 
-    addTextSegment(text, breakAfter, segments) {
+    _addTextSegment(text, breakAfter, segments) {
       var segment = {
         text: text,
         breakAfter: breakAfter,

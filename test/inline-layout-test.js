@@ -40,7 +40,7 @@ describe("MergedInlineLayout", function () {
       it(arg[0], function () {
         var actual = [];
         for (var str of arg[0])
-          layout.segmentString(str, actual);
+          layout._segmentString(str, actual);
         assert.deepEqual(actual, arg[1]);
       });
     });
