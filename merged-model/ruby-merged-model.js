@@ -78,10 +78,12 @@
 
         // Store Ruby annotation segments and related information
         // as a property of the first base segment.
-        var begin = segments.length;
+        var baseBeginIndex = segments.length;
         Array.prototype.push.apply(segments, baseSegments);
-        var baseCount = segments.length - begin;
-        segments[begin].rubyData = new RubyData(baseCount, annotationSegments);
+        var baseEndIndex = segments.length;
+        var baseCount = baseEndIndex - baseBeginIndex;
+        segments[baseBeginIndex].rubyData = new RubyData(baseCount, annotationSegments);
+        segments[baseEndIndex - 1].isRubyBaseEnd = true;
       }
       return segments;
     }
@@ -132,20 +134,29 @@
         var annotationSegments = rubyData.annotationSegments;
         var baseWidth = totalWidth(baseSegments);
         var annotationWidth = totalWidth(annotationSegments);
-        var overhang = annotationWidth - baseWidth;
+        var overhang = (annotationWidth - baseWidth) / 2;
 
         var beginSegmentInCurrentLine = baseSegments[0];
         for (var i = 0; i < baseSegments.length; i++) {
           var base = baseSegments[i];
           var x = 0;
-          if (i == 0) {
-            if (overhang > 0) {
-              x = overhang / 2;
-              base.width += x;
-            }
-          } else if (i == baseSegments.length - 1) {
-            if (overhang > 0)
-              base.width += overhang / 2;
+          if (i == 0 && overhang > 0) {
+            // Ruby can overhang to the last segment
+            // if the last segment is not ruby.
+            // TODO: Computing the max overhang NYI.
+            var last = context.lastSegment;
+            if (!last || last.isRubyBaseEnd)
+              x = overhang;
+          }
+          if (i == baseSegments.length - 1 && overhang > 0) {
+            // Ruby can overhang to the next segment,
+            // but it's known only after the next segment is available.
+            // TODO: Computing the max overhang NYI.
+            base.width += overhang;
+            base.onNextSegment = function (next) {
+              if (next && !next.rubyData)
+                base.width -= overhang;
+            };
           }
 
           if (context.add(base, x))
@@ -165,7 +176,7 @@
 
         // Flow annotations as out-of-flow.
         var x = beginSegmentInCurrentLine.left;
-        x -= overhang / 2;
+        x -= overhang;
         for (var annotationSegment of annotationSegments) {
           context.addOutOfFlow(annotationSegment, x, -6);
           x += annotationSegment.width;

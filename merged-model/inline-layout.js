@@ -24,7 +24,7 @@
       var maxWidth = parseFloat(targetStyle.width);
       var context = new LineBuilder(maxWidth);
       var lines = this.flow(segments, context);
-      var lastLine = context.commitAll();
+      var lastLine = context.commitForcedBreak();
       if (lastLine.length)
         lines.push(lastLine);
 
@@ -35,8 +35,13 @@
         var lineElement = document.createElement("div");
         lineElement.style.position = "relative";
         lineElement.style.height = "29px"; // TODO: line-height NYI
-        for (var s of line)
+        for (var s of line) {
           lineElement.appendChild(segmentToElement(s));
+          if (s.outOfFlowSegments) {
+            for (var o of s.outOfFlowSegments)
+              lineElement.appendChild(segmentToElement(o));
+          }
+        }
         target.appendChild(lineElement);
       }
     }
