@@ -35,6 +35,11 @@ but experiments indicate that it's necessary anyway.
 Can we give an API for computed values?
 Overhang needs the computed value of `fontSize`.
 
+GetComputedStyle during other phases than `segment` is a little tricky,
+because what these phases work on are segments rather than nodes.
+Text segments need to know which element it comes from anyway,
+it should be easy?
+
 ## Multiple Custom Layouts
 
 To handle multiple custom layouts,
@@ -59,7 +64,7 @@ that require independent line breaking context from the main flow.
 When a custom layout segments its descendants,
 `super.segment()` does not work well because
 when the default `InlineLayout` calls its `segment` recursively,
-it calls `this.segment` and thus custom `segment` is called.
+it calls `this.segment` which is the custom `segment`.
 
 Random thoughts:
 
@@ -68,9 +73,12 @@ delegate to `super.segment` if it isn't.
 Not very clean, not performant?
 1. Custom layout can create an instance of `InlineLayout`
 to do the default segmentation.
-1. To avoid excessive creations of `InlineLayout`,
+  * To avoid excessive creations of `InlineLayout`,
 `InlineLayout.default` gives a default instance
 for custom layouts to use.
+  * Is it a default `segment` or parent `segment` we'd like to call?
+Using the default may not work if nested;
+e.g., ruby inside bold?
 1. We could also define that `super.segment` should never
 call `this.segment` recursively.
 It's a little tricky for the platform developers to implement,
@@ -83,24 +91,24 @@ This prototype currently uses `InlineLayout.default`.
 
 Ruby annotations are out-of-flow.
 
-To handle this, `addOutOfFlow()` is added to `LineBuilder`.
-This function does not advance the current width,
-and associate the out-of-flow segments to the last in-flow segment.
+To handle this, `addOutOfFlow()` is added to `Segment`.
 
-Still to-be-solved:
-* Offsets should be relative to the associated segment?
-* How to determine which out-of-flow segments
-  should go to the next line?
-* Should out-of-flow segment be associated with an in-flow segment?
-* Should custom layout create a separate LineBuilder for out-of-flow segments, create lines, and
-add them to the in-flow lines?
-It may solve out-of-flow too?
+* Associate the out-of-flow segments to the in-flow segment.
+This helps moving out-of-flow segments along with in-flow segments between lines.
+* Originally added to `LineBuilder`, but needed to do this after a line is committed.
+* This function does not advance the current width.
+* Offset is defined relative to the parent in-flow segment.
+
+Still to think further:
+
+* Should custom layout create a separate LineBuilder for out-of-flow segments?
 
 ## Width changes by context
 
 There are cases where a segment width changes by context.
 
 Examples:
+
 * Ruby changes the segment width depends on what
 elements are before/after.
 * Ruby changes the segment width depends on whether
@@ -139,6 +147,10 @@ the platform can call `segment.adjust` callback if it's set.
 because otherwise the next segment may be pushed to the next line.
   * When the callback changed the width,
 `LineBuilder` must recompute positions of following segments.
+  * This is simpler than `adjust` or `onTerminate`
+because it runs per segment, not per line nor per block,
+though it can only handle previous and next.
+Good enough for Ruby use cases, but may not cover other use cases?
   * There's a complexity when the callback increased the width,
 and the line reach maxWidth because of that.
 3. There are some similarities with justification.
@@ -146,7 +158,11 @@ Should it be designed together?
 
 The current prototype implements `onNextSegment` callback
 without the complex case mentioned above,
-because the callback may compress but next expands.
+because the callback may compress but never expands.
+
+## Breaks within a Ruby
+
+See Out-of-flow Segments above.
 
 ## Generator?
 
@@ -154,9 +170,6 @@ Should each phase be a generator rather than arrays?
 
 ## Other Open Questions
 
-* How to handle breaks within a ruby element needs further experiments.
-  The current prototype is incomplete.
-  This might also affect the API design.
 * Justification is still TBD.
   It's complex when there are justification opportunities
   both between segments and within a segment.

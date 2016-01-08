@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <meta charset="utf-8">
 <script src="line-breaker.js"></script>
 <script src="../line-model/inline-layout.js"></script>
 <script src="ruby-line-model.js"></script>
 <script src="../segment-measure-flow-adjust/layout.js"></script>
 <script src="line-builder.js"></script>
+<script src="line-segment.js"></script>
 <script src="inline-layout.js"></script>
 <script src="ruby-merged-model.js"></script>
 <style>
@@ -61,6 +62,14 @@ li {
 <li>
   <div title="overhang" class="source">
     あ<ruby>漢<rt>かんじ</rt></ruby><ruby>あ<rt>あ</rt></ruby> can overhang only before.
+  </div>
+<li>
+  <div title="break-within-a-ruby" class="source">
+    ああああああ<ruby>超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超長い文字列<rt>とてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもながいもじれつ</rt></ruby>ああああああ
+  </div>
+<li>
+  <div title="break-within-a-ruby" class="source">
+    ああああああ<ruby>超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超超長い文字列<rt>とてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもとてもながいもじれつ</rt></ruby>ああああああ
   </div>
 <li>
   <div class="source">

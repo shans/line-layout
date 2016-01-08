@@ -26,7 +26,7 @@
 
     _onBreakAfter() {
       var nextBreakAfterIndex = this.segments.length - 1;
-      // Notify the next segment in the line has determined.
+      // Notify that the next segment has determined.
       var widthChanged = 0;
       for (var i = Math.max(this.lastBreakAfterIndex, 0); i < nextBreakAfterIndex; i++) {
         var s = this.segments[i];
@@ -57,16 +57,6 @@
       return this.segments.length
         ? this.segments[this.segments.length - 1]
         : null;
-    }
-
-    addOutOfFlow(segment, x, y) {
-      // Associate out-of-flow segments with the last in-flow segment.
-      var parent = this.lastSegment;
-      console.assert(parent); // TODO: what to do if no last segment?
-      parent.outOfFlowSegments = parent.outOfFlowSegments || [];
-      parent.outOfFlowSegments.push(segment);
-      segment.left = x;
-      segment.top = y;
     }
 
     commit() {

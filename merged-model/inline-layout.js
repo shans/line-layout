@@ -36,10 +36,14 @@
         lineElement.style.position = "relative";
         lineElement.style.height = "29px"; // TODO: line-height NYI
         for (var s of line) {
-          lineElement.appendChild(segmentToElement(s));
+          var element = segmentToElement(s);
+          lineElement.appendChild(element);
           if (s.outOfFlowSegments) {
-            for (var o of s.outOfFlowSegments)
-              lineElement.appendChild(segmentToElement(o));
+            for (var oof of s.outOfFlowSegments) {
+              oof.left += s.left;
+              var oofElement = segmentToElement(oof);
+              lineElement.appendChild(oofElement);
+            }
           }
         }
         target.appendChild(lineElement);
@@ -126,10 +130,7 @@
     }
 
     _addTextSegment(text, breakAfter, segments) {
-      var segment = {
-        text: text,
-        breakAfter: breakAfter,
-      };
+      var segment = new LineSegment(text, breakAfter);
       segments.push(segment);
       this.lineBreaker.lastSegment = segment;
     }
@@ -164,6 +165,21 @@
     }
 
     adjust(segments) {
+    }
+  }
+
+  // Naming avoids conflict with line-model for now to run both models in a page.
+  exports.LineSegment = class LineSegment {
+    constructor(text, breakAfter) {
+      this.text = text;
+      this.breakAfter = breakAfter;
+    }
+
+    addOutOfFlow(segment, x, y) {
+      this.outOfFlowSegments = this.outOfFlowSegments || [];
+      this.outOfFlowSegments.push(segment);
+      segment.left = x;
+      segment.top = y;
     }
   }
 })(this);

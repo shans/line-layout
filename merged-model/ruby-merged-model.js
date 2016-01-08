@@ -83,7 +83,7 @@
         var baseEndIndex = segments.length;
         var baseCount = baseEndIndex - baseBeginIndex;
         segments[baseBeginIndex].rubyData = new RubyData(baseCount, annotationSegments);
-        segments[baseEndIndex - 1].isRubyBaseEnd = true;
+        segments[baseEndIndex - 1].isLastRubyBase = true;
       }
       return segments;
     }
@@ -135,51 +135,97 @@
         var baseWidth = totalWidth(baseSegments);
         var annotationWidth = totalWidth(annotationSegments);
         var overhang = (annotationWidth - baseWidth) / 2;
+        var lineCountBeforeFlow = lines.length;
 
-        var beginSegmentInCurrentLine = baseSegments[0];
+        var firstSegmentIndex = context.segments.length;
         for (var i = 0; i < baseSegments.length; i++) {
           var base = baseSegments[i];
           var x = 0;
-          if (i == 0 && overhang > 0) {
-            // Ruby can overhang to the last segment
-            // if the last segment is not ruby.
-            // TODO: Computing the max overhang NYI.
-            var last = context.lastSegment;
-            if (!last || last.isRubyBaseEnd)
-              x = overhang;
-          }
-          if (i == baseSegments.length - 1 && overhang > 0) {
-            // Ruby can overhang to the next segment,
-            // but it's known only after the next segment is available.
-            // TODO: Computing the max overhang NYI.
-            base.width += overhang;
-            base.onNextSegment = function (next) {
-              if (next && !next.rubyData)
-                base.width -= overhang;
-            };
+          if (overhang > 0) {
+            if (i == 0) {
+              // Ruby can overhang to the last segment if the last segment is not ruby.
+              // TODO: Computing the max overhang NYI.
+              var last = context.lastSegment;
+              if (!last || last.isLastRubyBase)
+                x = overhang;
+            }
+            if (i == baseSegments.length - 1) {
+              // Ruby can overhang to the next segment if the next segment is not ruby,
+              // but it's known only after the next segment is available.
+              // TODO: Computing the max overhang NYI.
+              base.width += overhang;
+              base.onNextSegment = function (next) {
+                if (next && !next.rubyData)
+                  base.width -= overhang;
+              };
+            }
           }
 
           if (context.add(base, x))
             continue;
-
-          // Break within a ruby segment.
-          if (base !== beginSegmentInCurrentLine) {
-            // TODO: flowing some annotation is NYI.
-            console.log("Break within a segment before " + base.text);
-          }
-
-          // Move to the next line.
           lines.push(context.commit());
-          beginSegmentInCurrentLine = base;
           context.add(base, x);
         }
 
         // Flow annotations as out-of-flow.
-        var x = beginSegmentInCurrentLine.left;
-        x -= overhang;
-        for (var annotationSegment of annotationSegments) {
-          context.addOutOfFlow(annotationSegment, x, -6);
-          x += annotationSegment.width;
+        // TODO: This code needs more cleanup.
+        var lineCount = lines.length;
+        if (lineCountBeforeFlow === lineCount
+          || firstSegmentIndex >= lines[lineCountBeforeFlow].length) {
+          // No breaks within the ruby segment.
+          var firstBase = baseSegments[0];
+          var x = 0;
+          x -= overhang;
+          for (var annotationSegment of annotationSegments) {
+            firstBase.addOutOfFlow(annotationSegment, x, -6);
+            x += annotationSegment.width;
+          }
+        } else {
+          // There are breaks within the ruby segment.
+          var flowedLines = [];
+          flowedLines.push({ segments: lines[lineCountBeforeFlow], index: firstSegmentIndex });
+          for (var i = lineCountBeforeFlow + 1; i < lineCount; i++)
+            flowedLines.push({ segments: lines[i], index: 0 });
+          if (context.segments.length > 0)
+            flowedLines.push({ segments: context.segments, index: 0 });
+
+          // Compute the total width of ruby in each line.
+          flowedLines = flowedLines.map(l => {
+            var width = 0;
+            for (var i = l.index; i < l.segments.length; i++)
+              width += l.segments[i].width;
+            l.width = width;
+            return l;
+          });
+
+          // TODO: better to distribute rubies among lines according to width
+          // than fit as much as possible and flow to the next line.
+
+          // Flow ruby annotation segments into each line.
+          for (var l = 0; l < flowedLines.length; l++) {
+            var line = flowedLines[l];
+            var firstBase = line.segments[line.index];
+            var x = 0;
+            if (l == 0)
+              x -= overhang; // TODO: need review, not sure how right this is.
+            var annotationWidth = 0;
+            for (var i = 0; ; i++) {
+              if (i >= annotationSegments.length) {
+                annotationSegments = [];
+                break;
+              }
+              var s = annotationSegments[i];
+              if (l + 1 < flowedLines.length && x + s.width > line.width) {
+                annotationSegments = annotationSegments.slice(i);
+                break;
+              }
+              firstBase.addOutOfFlow(s, x, -6);
+              x += s.width;
+              annotationWidth += s.width;
+            }
+            if (!annotationSegments.length)
+              break;
+          }
         }
       }
       return lines;
