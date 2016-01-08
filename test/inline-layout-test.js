@@ -3,9 +3,9 @@ var assert = require("assert");
 var LineBreaker = require("../merged-model/line-breaker.js").LineBreaker;
 var LineBuilder = require("../merged-model/line-builder.js").LineBuilder;
 var InlineLayout = require("../merged-model/inline-layout.js").InlineLayout;
+var InlineSegment = require("../merged-model/inline-layout.js").InlineSegment;
 
 describe("MergedInlineLayout", function () {
-  var layout = new InlineLayout(new LineBreaker);
   describe("segmentString", function () {
     [
       [[""], []],
@@ -38,6 +38,7 @@ describe("MergedInlineLayout", function () {
         { text: "あ", breakAfter: null }]],
     ].forEach(function (arg) {
       it(arg[0], function () {
+        var layout = new InlineLayout(new LineBreaker);
         var actual = [];
         for (var str of arg[0])
           layout._segmentString(str, actual);
@@ -47,7 +48,6 @@ describe("MergedInlineLayout", function () {
   });
 
   describe("flow", function () {
-    layout.wordSpace = 10;
     [
       [[{ width: 100 }],
         [[{ width: 100, left: 0, top: 0}]]],
@@ -65,9 +65,10 @@ describe("MergedInlineLayout", function () {
           [{ width: 150, left: 0, top: 0, breakAfter: "nospace" }]]],
     ].forEach(function (arg) {
       it(arg[0].map(a => a.width + "/" + a.breakAfter), function () {
+        var layout = new InlineLayout(new LineBreaker);
         var context = new LineBuilder(500);
         var actual = layout.flow(arg[0], context);
-        var lastLine = context.commitAll();
+        var lastLine = context.commitForcedBreak();
         if (lastLine.length)
           actual.push(lastLine);
         assert.deepEqual(actual, arg[1]);

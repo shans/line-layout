@@ -30,24 +30,7 @@
 
       this.adjust(segments);
 
-      target.innerHTML = '';
-      for (var line of lines) {
-        var lineElement = document.createElement("div");
-        lineElement.style.position = "relative";
-        lineElement.style.height = "29px"; // TODO: line-height NYI
-        for (var s of line) {
-          var element = segmentToElement(s);
-          lineElement.appendChild(element);
-          if (s.outOfFlowSegments) {
-            for (var oof of s.outOfFlowSegments) {
-              oof.left += s.left;
-              var oofElement = segmentToElement(oof);
-              lineElement.appendChild(oofElement);
-            }
-          }
-        }
-        target.appendChild(lineElement);
-      }
+      this._appendLines(target, lines);
     }
 
     static register(tagName, layout) {
@@ -61,7 +44,11 @@
         this._segmentElement(node, segments);
         break;
       case Node.TEXT_NODE:
+        var i = segments.length;
         this._segmentString(node.nodeValue, segments);
+        var parentElement = node.parentElement;
+        for (; i < segments.length; i++)
+          segments[i].element = parentElement;
         break;
       }
       return segments;
@@ -93,7 +80,7 @@
       for (var i = 0; i < str.length; i++) {
         var breakType = lineBreaker.breakBefore(str[i]);
         if (breakType) {
-          console.assert(lineBreaker.lastSegment, "Break needed without lastSegment");
+          console.assert(lineBreaker.lastSegment, "Break needed without lastSegment", i, str);
           lineBreaker.lastSegment.breakAfter = breakType;
           break;
         }
@@ -166,10 +153,31 @@
 
     adjust(segments) {
     }
+
+    _appendLines(target, lines) {
+      target.innerHTML = '';
+      for (var line of lines) {
+        var lineElement = document.createElement("div");
+        lineElement.style.position = "relative";
+        lineElement.style.height = "29px"; // TODO: line-height NYI
+        for (var s of line) {
+          var element = segmentToElement(s);
+          lineElement.appendChild(element);
+          if (s.outOfFlowSegments) {
+            for (var oof of s.outOfFlowSegments) {
+              oof.left += s.left;
+              var oofElement = segmentToElement(oof);
+              lineElement.appendChild(oofElement);
+            }
+          }
+        }
+        target.appendChild(lineElement);
+      }
+    }
   }
 
   // Naming avoids conflict with line-model for now to run both models in a page.
-  exports.LineSegment = class LineSegment {
+  class LineSegment {
     constructor(text, breakAfter) {
       this.text = text;
       this.breakAfter = breakAfter;
@@ -181,5 +189,19 @@
       segment.left = x;
       segment.top = y;
     }
+
+    get style() {
+      if (this.element)
+        return getComputedStyle(this.element);
+      return null;
+    }
+
+    static totalWidth(segments) {
+      var width = 0;
+      for (var s of segments)
+        width += s.width;
+      return width;
+    }
   }
+  exports.LineSegment = LineSegment;
 })(this);

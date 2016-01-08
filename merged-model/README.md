@@ -36,9 +36,9 @@ Can we give an API for computed values?
 Overhang needs the computed value of `fontSize`.
 
 GetComputedStyle during other phases than `segment` is a little tricky,
-because what these phases work on are segments rather than nodes.
-Text segments need to know which element it comes from anyway,
-it should be easy?
+because what these phases work on are segments, not nodes.
+Segments need to know which element it comes from anyway,
+it should not be an issue?
 
 ## Multiple Custom Layouts
 

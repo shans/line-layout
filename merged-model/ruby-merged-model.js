@@ -122,7 +122,7 @@
         var baseSegments = rubyData.baseSegments;
         var annotationSegments = rubyData.annotationSegments;
         super.measure(annotationSegments);
-        // Total width and overhang are done in flow().
+        // Total width and overhang are computed in flow().
         // That means the actual width can change during flow().
       }
     }
@@ -132,35 +132,20 @@
       for (var rubyData of RubyData.getList(segments)) {
         var baseSegments = rubyData.baseSegments;
         var annotationSegments = rubyData.annotationSegments;
-        var baseWidth = totalWidth(baseSegments);
-        var annotationWidth = totalWidth(annotationSegments);
-        var overhang = (annotationWidth - baseWidth) / 2;
-        var lineCountBeforeFlow = lines.length;
+        var baseWidth = LineSegment.totalWidth(baseSegments);
+        var annotationWidth = LineSegment.totalWidth(annotationSegments);
 
+        // Compute left/right margins and overhang.
+        var baseMargin = (annotationWidth - baseWidth) / 2;
+        if (baseMargin > 0)
+          this._computeBaseMargins(baseSegments, context, baseMargin);
+
+        // Flow bases.
+        var lineCountBeforeFlow = lines.length;
         var firstSegmentIndex = context.segments.length;
         for (var i = 0; i < baseSegments.length; i++) {
           var base = baseSegments[i];
-          var x = 0;
-          if (overhang > 0) {
-            if (i == 0) {
-              // Ruby can overhang to the last segment if the last segment is not ruby.
-              // TODO: Computing the max overhang NYI.
-              var last = context.lastSegment;
-              if (!last || last.isLastRubyBase)
-                x = overhang;
-            }
-            if (i == baseSegments.length - 1) {
-              // Ruby can overhang to the next segment if the next segment is not ruby,
-              // but it's known only after the next segment is available.
-              // TODO: Computing the max overhang NYI.
-              base.width += overhang;
-              base.onNextSegment = function (next) {
-                if (next && !next.rubyData)
-                  base.width -= overhang;
-              };
-            }
-          }
-
+          var x = base._offset;
           if (context.add(base, x))
             continue;
           lines.push(context.commit());
@@ -168,75 +153,81 @@
         }
 
         // Flow annotations as out-of-flow.
-        // TODO: This code needs more cleanup.
         var lineCount = lines.length;
         if (lineCountBeforeFlow === lineCount
           || firstSegmentIndex >= lines[lineCountBeforeFlow].length) {
           // No breaks within the ruby segment.
-          var firstBase = baseSegments[0];
-          var x = 0;
-          x -= overhang;
-          for (var annotationSegment of annotationSegments) {
-            firstBase.addOutOfFlow(annotationSegment, x, -6);
-            x += annotationSegment.width;
-          }
+          // Associate all annotations to the first base.
+          this._flowAnnotations(baseSegments, annotationSegments, baseMargin);
         } else {
           // There are breaks within the ruby segment.
-          var flowedLines = [];
-          flowedLines.push({ segments: lines[lineCountBeforeFlow], index: firstSegmentIndex });
-          for (var i = lineCountBeforeFlow + 1; i < lineCount; i++)
-            flowedLines.push({ segments: lines[i], index: 0 });
+          // Distribute annotations to multiple base lines.
+          var baseLines = lines.slice(lineCountBeforeFlow);
+          baseLines[0] = baseLines[0].slice(firstSegmentIndex);
           if (context.segments.length > 0)
-            flowedLines.push({ segments: context.segments, index: 0 });
-
-          // Compute the total width of ruby in each line.
-          flowedLines = flowedLines.map(l => {
-            var width = 0;
-            for (var i = l.index; i < l.segments.length; i++)
-              width += l.segments[i].width;
-            l.width = width;
-            return l;
-          });
-
-          // TODO: better to distribute rubies among lines according to width
-          // than fit as much as possible and flow to the next line.
-
-          // Flow ruby annotation segments into each line.
-          for (var l = 0; l < flowedLines.length; l++) {
-            var line = flowedLines[l];
-            var firstBase = line.segments[line.index];
-            var x = 0;
-            if (l == 0)
-              x -= overhang; // TODO: need review, not sure how right this is.
-            var annotationWidth = 0;
-            for (var i = 0; ; i++) {
-              if (i >= annotationSegments.length) {
-                annotationSegments = [];
-                break;
-              }
-              var s = annotationSegments[i];
-              if (l + 1 < flowedLines.length && x + s.width > line.width) {
-                annotationSegments = annotationSegments.slice(i);
-                break;
-              }
-              firstBase.addOutOfFlow(s, x, -6);
-              x += s.width;
-              annotationWidth += s.width;
-            }
-            if (!annotationSegments.length)
-              break;
-          }
+            baseLines.push(context.segments);
+          this._flowAnnotationsToLines(baseLines, annotationSegments, baseMargin);
         }
       }
       return lines;
     }
-  }
 
-  function totalWidth(segments) {
-    var width = 0;
-    for (var s of segments)
-      width += s.width;
-    return width;
+    _computeBaseMargins(baseSegments, context, baseMargin) {
+      // Ruby can overhang to the last segment if the last segment is not ruby.
+      var first = baseSegments[0];
+      var last = context.lastSegment;
+      if (!last || last.isLastRubyBase)
+        first._offset = baseMargin;
+      else
+        first._offset = Math.max(0, baseMargin - parseFloat(last.style.fontSize) / 3);
+
+      // Ruby can overhang to the next segment if the next segment is not ruby,
+      // but it's known only after the next segment is available.
+      var last = baseSegments[baseSegments.length - 1];
+      last.width += baseMargin;
+      last.onNextSegment = function (next) {
+        if (next && !next.rubyData)
+          last.width -= Math.min(baseMargin, parseFloat(next.style.fontSize) / 3);
+      };
+    }
+
+    _flowAnnotations(baseSegments, annotationSegments, baseMargin) {
+      var annotationLine = new LineBuilder;
+      annotationLine.x -= baseMargin;
+      for (var annotationSegment of annotationSegments)
+        annotationLine.add(annotationSegment);
+      this._addAnnotationLine(baseSegments, annotationLine);
+    }
+
+    _addAnnotationLine(baseSegments, annotationLine) {
+      var firstBase = baseSegments[0];
+      for (var s of annotationLine.segments)
+        firstBase.addOutOfFlow(s, s.left, -6);
+    }
+
+    _flowAnnotationsToLines(baseLines, annotationSegments, baseMargin) {
+      // TODO: better to distribute rubies among lines according to width
+      // than fit as much as possible and flow to the next line.
+      var firstLine = baseLines[0];
+      var lastLine = baseLines[baseLines.length - 1];
+      for (var line of baseLines) {
+        var annotationLine = new LineBuilder;
+        if (line === firstLine)
+          annotationLine.x -= baseMargin;
+        if (line !== lastLine)
+          annotationLine.maxWidth = LineSegment.totalWidth(line);
+        for (var i = 0; i < annotationSegments.length; i++) {
+          var s = annotationSegments[i];
+          if (!annotationLine.add(s)) {
+            annotationSegments = annotationSegments.slice(i);
+            break;
+          }
+        }
+        this._addAnnotationLine(line, annotationLine);
+        if (!annotationSegments.length)
+          break;
+      }
+    }
   }
 
   InlineLayout.register("ruby", new RubyInlineLayout);

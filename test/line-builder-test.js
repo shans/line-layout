@@ -13,7 +13,7 @@ describe("LineBuilder", function () {
       { width: 300, breakAfter: "nospace", left: 100, top: 0 },
     ]);
     assert.deepEqual(context.commit(), []);
-    assert.deepEqual(context.commitAll(), []);
+    assert.deepEqual(context.commitForcedBreak(), []);
   });
 
   it("Non-breakable", function () {
@@ -25,7 +25,7 @@ describe("LineBuilder", function () {
       { width: 100, breakAfter: "nospace", left: 0, top: 0 },
     ]);
     assert.deepEqual(context.commit(), []);
-    assert.deepEqual(context.commitAll(), [
+    assert.deepEqual(context.commitForcedBreak(), [
       { width: 300, breakAfter: null, left: 0, top: 0 },
     ]);
   });
