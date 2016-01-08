@@ -1,6 +1,7 @@
 'use strict';
 
 (function (exports) {
+  // RubyPair analyzes descendants of <ruby> in DOM to pair bases and annotations.
   class RubyPair {
     constructor(baseNodes) {
       this.baseNodes = baseNodes;
@@ -45,12 +46,22 @@
     }
   }
 
+  // RubyData manages relationship of base segments and annotation segments.
   class RubyData {
     constructor(baseCount, annotationSegments) {
       console.assert(baseCount > 0);
       console.assert(annotationSegments.length > 0);
       this.baseCount = baseCount;
       this.annotationSegments = annotationSegments;
+    }
+
+    static set(segments, baseStartIndex, annotationSegments) {
+      // Store Ruby annotation segments and related information
+      // as a property of the first base segment.
+      var baseEndIndex = segments.length;
+      var baseCount = baseEndIndex - baseStartIndex;
+      segments[baseStartIndex].rubyData = new RubyData(baseCount, annotationSegments);
+      segments[baseEndIndex - 1].isLastRubyBase = true;
     }
 
     static getList(segments) {
@@ -71,30 +82,21 @@
       console.assert(element.tagName.toLowerCase() === "ruby");
       segments = segments || [];
       var nodes = element.childNodes;
-      var pairs = RubyPair.fromChildNodes(nodes);
-      for (var pair of pairs) {
-        var baseSegments = this._segmentBase(pair);
+      for (var pair of RubyPair.fromChildNodes(nodes)) {
+        var baseStartIndex = segments.length;
+        this._segmentBase(pair, segments);
         var annotationSegments = this._segmentAnnotation(pair);
-
-        // Store Ruby annotation segments and related information
-        // as a property of the first base segment.
-        var baseBeginIndex = segments.length;
-        Array.prototype.push.apply(segments, baseSegments);
-        var baseEndIndex = segments.length;
-        var baseCount = baseEndIndex - baseBeginIndex;
-        segments[baseBeginIndex].rubyData = new RubyData(baseCount, annotationSegments);
-        segments[baseEndIndex - 1].isLastRubyBase = true;
+        RubyData.set(segments, baseStartIndex, annotationSegments);
       }
       return segments;
     }
 
-    _segmentBase(pair) {
+    _segmentBase(pair, segments) {
       var layout = InlineLayout.default;
       // Base is in-flow, continue the current line breaking context,
       // and the following element continues after the base.
       var savedLineBreaker = layout.lineBreaker;
       layout.lineBreaker = this.lineBreaker;
-      var segments = [];
       for (var baseNode of pair.baseNodes)
         layout.segment(baseNode, segments);
       return segments;
@@ -118,13 +120,10 @@
       super.measure(segments);
 
       // Measure annotations.
-      for (var rubyData of RubyData.getList(segments)) {
-        var baseSegments = rubyData.baseSegments;
-        var annotationSegments = rubyData.annotationSegments;
-        super.measure(annotationSegments);
-        // Total width and overhang are computed in flow().
-        // That means the actual width can change during flow().
-      }
+      // Total width and overhang are computed in flow().
+      // That means the actual width can change during flow().
+      for (var rubyData of RubyData.getList(segments))
+        super.measure(rubyData.annotationSegments);
     }
 
     flow(segments, context, lines) {
@@ -143,8 +142,7 @@
         // Flow bases.
         var lineCountBeforeFlow = lines.length;
         var firstSegmentIndex = context.segments.length;
-        for (var i = 0; i < baseSegments.length; i++) {
-          var base = baseSegments[i];
+        for (var base of baseSegments) {
           var x = base._offset;
           if (context.add(base, x))
             continue;
@@ -153,11 +151,10 @@
         }
 
         // Flow annotations as out-of-flow.
-        var lineCount = lines.length;
-        if (lineCountBeforeFlow === lineCount
+        if (lineCountBeforeFlow === lines.length
           || firstSegmentIndex >= lines[lineCountBeforeFlow].length) {
           // No breaks within the ruby segment.
-          // Associate all annotations to the first base.
+          // Associate all annotations to the base.
           this._flowAnnotations(baseSegments, annotationSegments, baseMargin);
         } else {
           // There are breaks within the ruby segment.
@@ -201,7 +198,7 @@
 
     _addAnnotationLine(baseSegments, annotationLine) {
       var firstBase = baseSegments[0];
-      for (var s of annotationLine.segments)
+      for (var s of annotationLine.commitForcedBreak())
         firstBase.addOutOfFlow(s, s.left, -6);
     }
 
@@ -211,11 +208,13 @@
       var firstLine = baseLines[0];
       var lastLine = baseLines[baseLines.length - 1];
       for (var line of baseLines) {
+        // Flow annotations up to the width of the base.
         var annotationLine = new LineBuilder;
         if (line === firstLine)
           annotationLine.x -= baseMargin;
         if (line !== lastLine)
           annotationLine.maxWidth = LineSegment.totalWidth(line);
+          // TODO: should incorporate width up to the right margin.
         for (var i = 0; i < annotationSegments.length; i++) {
           var s = annotationSegments[i];
           if (!annotationLine.add(s)) {
