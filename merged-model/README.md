@@ -96,12 +96,10 @@ To handle this, `addOutOfFlow()` is added to `Segment`.
 * Associate the out-of-flow segments to the in-flow segment.
 This helps moving out-of-flow segments along with in-flow segments between lines.
 * Originally added to `LineBuilder`, but needed to do this after a line is committed.
+* Originally `addOutOfFlow()` adds segments,
+but changed to add line as later process (e.g., bidi-reordering) is likely to require lines rather than segments.
 * This function does not advance the current width.
 * Offset is defined relative to the parent in-flow segment.
-
-Still to think further:
-
-* Should custom layout create a separate LineBuilder for out-of-flow segments?
 
 ## Width changes by context
 
@@ -168,14 +166,28 @@ See Out-of-flow Segments above.
 
 Should each phase be a generator rather than arrays?
 
+## Bidi and vertical flows
+
+* Logical v.s. physical:
+  * Offsets should be logical for vertical flow.
+  * Offsets should be logical for RTL? Probably yes.
+  * CSS WG may want different namings if logical.
+* Bidi-reordering:
+  * Bidi-reordering should run after a line was constructed.
+  * This is likely be challenging implementation-wise,
+since the current BidiResolver walks through box-tree,
+and custom layout may change visual order of segments.
+
+## Editing
+
+* Editing is also challenging when custom layouts reordered segments.
+* Best to treat as a replaced element for editing?
+
 ## Other Open Questions
 
 * Justification is still TBD.
   It's complex when there are justification opportunities
   both between segments and within a segment.
-* Offsets should be logical for vertical flow.
-* Offsets should be logical for RTL?
-* How should bidi-reordering implemented?
 
 [line-model]: ../line-model/
 [phase-model]: ../segment-measure-flow-adjust/

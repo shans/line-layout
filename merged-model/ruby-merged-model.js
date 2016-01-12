@@ -158,12 +158,31 @@
           this._flowAnnotations(baseSegments, annotationSegments, baseMargin);
         } else {
           // There are breaks within the ruby segment.
-          // Distribute annotations to multiple base lines.
-          var baseLines = lines.slice(lineCountBeforeFlow);
-          baseLines[0] = baseLines[0].slice(firstSegmentIndex);
+          // In order to distribute annotations to multiple base lines,
+          // collect all lines of base segments.
+          var baseLines = [];
+          baseLines.push(lines[lineCountBeforeFlow].segments.slice(firstSegmentIndex));
+          baseLines.push(...lines.slice(lineCountBeforeFlow +1).map(l => l.segments));
           if (context.segments.length > 0)
             baseLines.push(context.segments);
-          this._flowAnnotationsToLines(baseLines, annotationSegments, baseMargin);
+          // When the beginning of ruby base was wrapped,
+          // we need to find where in the next line it was wrapped to.
+          if (baseLines[0].length == 0) {
+            baseLines = baseLines.slice(1);
+            var firstLine = baseLines[0];
+            for (var i = 0; ; i++) {
+              console.assert(i < firstLine.length);
+              if (firstLine[i] === segments[0]) {
+                baseLines[0] = firstLine.slice(i);
+                break;
+              }
+            }
+          }
+          console.assert(baseLines[0][0] === segments[0]);
+          if (baseLines.length == 1)
+            this._flowAnnotations(baseLines[0], annotationSegments, baseMargin);
+          else
+            this._flowAnnotationsToLines(baseLines, annotationSegments, baseMargin);
         }
       }
       return lines;
@@ -198,8 +217,7 @@
 
     _addAnnotationLine(baseSegments, annotationLine) {
       var firstBase = baseSegments[0];
-      for (var s of annotationLine.commitForcedBreak())
-        firstBase.addOutOfFlow(s, s.left, -6);
+      firstBase.addOutOfFlow(annotationLine.commitForcedBreak(), 0, -6);
     }
 
     _flowAnnotationsToLines(baseLines, annotationSegments, baseMargin) {

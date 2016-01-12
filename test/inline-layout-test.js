@@ -69,9 +69,9 @@ describe("MergedInlineLayout", function () {
         var context = new LineBuilder(500);
         var actual = layout.flow(arg[0], context);
         var lastLine = context.commitForcedBreak();
-        if (lastLine.length)
+        if (lastLine.segments.length)
           actual.push(lastLine);
-        assert.deepEqual(actual, arg[1]);
+        assert.deepEqual(actual.map(l => l.segments), arg[1]);
       });
     });
   });

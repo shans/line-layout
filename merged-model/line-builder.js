@@ -63,20 +63,27 @@
       if (this.lastBreakAfterIndex == this.segments.length - 1)
         return this.commitForcedBreak();
 
-      var segments = this.segments.splice(0, this.lastBreakAfterIndex + 1);
+      var line = new LineLine(this.segments.splice(0, this.lastBreakAfterIndex + 1));
       this.x = 0;
       this.lastBreakAfterIndex = -1;
       for (var segment of this.segments)
         this._advance(segment);
-      return segments;
+      return line;
     }
 
     commitForcedBreak() {
-      var segments = this.segments;
+      var line = new LineLine(this.segments);
       this.segments = [];
       this.x = 0;
       this.lastBreakAfterIndex = -1;
-      return segments;
+      return line;
     }
   }
+
+  class LineLine {
+    constructor(segments) {
+      this.segments = segments;
+    }
+  }
+  exports.LineLine = LineLine;
 })(this);

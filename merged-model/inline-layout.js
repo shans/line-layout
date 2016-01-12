@@ -25,7 +25,7 @@
       var context = new LineBuilder(maxWidth);
       var lines = this.flow(segments, context);
       var lastLine = context.commitForcedBreak();
-      if (lastLine.length)
+      if (lastLine.segments.length)
         lines.push(lastLine);
 
       this.adjust(segments);
@@ -160,14 +160,17 @@
         var lineElement = document.createElement("div");
         lineElement.style.position = "relative";
         lineElement.style.height = "29px"; // TODO: line-height NYI
-        for (var s of line) {
+        for (var s of line.segments) {
           var element = segmentToElement(s);
           lineElement.appendChild(element);
-          if (s.outOfFlowSegments) {
-            for (var oof of s.outOfFlowSegments) {
-              oof.left += s.left;
-              var oofElement = segmentToElement(oof);
-              lineElement.appendChild(oofElement);
+          if (s.outOfFlowLines) {
+            for (var oofLine of s.outOfFlowLines) {
+              for (var oof of oofLine.segments) {
+                oof.left += s.left + oofLine.left;
+                oof.top += s.top + oofLine.top;
+                var oofElement = segmentToElement(oof);
+                lineElement.appendChild(oofElement);
+              }
             }
           }
         }
@@ -183,11 +186,11 @@
       this.breakAfter = breakAfter;
     }
 
-    addOutOfFlow(segment, x, y) {
-      this.outOfFlowSegments = this.outOfFlowSegments || [];
-      this.outOfFlowSegments.push(segment);
-      segment.left = x;
-      segment.top = y;
+    addOutOfFlow(line, x, y) {
+      this.outOfFlowLines = this.outOfFlowLines || [];
+      this.outOfFlowLines.push(line);
+      line.left = x;
+      line.top = y;
     }
 
     get style() {
