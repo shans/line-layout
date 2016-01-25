@@ -90,15 +90,14 @@ This prototype currently uses `InlineLayout.default`.
 ## Out-of-flow Segments
 
 Ruby annotations are out-of-flow.
-
 To handle this, `addOutOfFlow()` is added to `Segment`.
 
 * Associate the out-of-flow segments to the in-flow segment.
 This helps moving out-of-flow segments along with in-flow segments between lines.
 * Originally added to `LineBuilder`, but needed to do this after a line is committed.
-* Originally `addOutOfFlow()` adds segments,
-but changed to add line as later process (e.g., bidi-reordering) is likely to require lines rather than segments.
-* This function does not advance the current width.
+* Originally `addOutOfFlow(segment)`
+but changed to `addOutOfFlow(line)`
+as later processes (e.g., bidi-reordering) require lines rather than segments.
 * Offset is defined relative to the parent in-flow segment.
 
 ## Width changes by context
@@ -177,6 +176,11 @@ Should each phase be a generator rather than arrays?
   * This is likely be challenging implementation-wise,
 since the current BidiResolver walks through box-tree,
 and custom layout may change visual order of segments.
+  * Should we prohibit custom layouts to re-order segments?
+We can allow hiding (display: none) or
+taking out-of-flow,
+but re-ordering can complicate bidi-reordering.
+  * Overriding `direction` and `unicode-bidi` can be also complicated?
 
 ## Editing
 
