@@ -40,7 +40,7 @@ because what these phases work on are segments, not nodes.
 Segments need to know which element it comes from anyway,
 it should not be an issue?
 
-## Multiple Custom Layouts
+## `LineBreaker` and `LineBuilder`
 
 To handle multiple custom layouts,
 following data needed to be split out
